@@ -1,0 +1,10 @@
+description: 3-epoch model with a bottleneck in the second epoch and exponential expansion
+  in the third, for the GBR population
+time_units: years
+generation_time: 29
+demes:
+- name: GBR
+  epochs:
+  - {end_time: 48781.47888301361, start_size: 14688.418204218593}
+  - {end_time: 41537.59614608982, start_size: 1668.5786115081512}
+  - {end_time: 0, start_size: 1668.5786115081512, end_size: 56664.40632193149}

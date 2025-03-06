@@ -1,0 +1,23 @@
+description: Simple OOA model with MSL, CHS demes and ancestral expansion.
+time_units: years
+generation_time: 29
+demes:
+- name: A
+  epochs:
+  - {end_time: 315812.58621766657, start_size: 15347.569461568475}
+- name: AMH
+  ancestors: [A]
+  epochs:
+  - {end_time: 45163.157840189706, start_size: 24838.308790053197}
+- name: MSL
+  ancestors: [AMH]
+  epochs:
+  - {end_time: 0, start_size: 28328.418291111968}
+- name: GBR
+  ancestors: [AMH]
+  epochs:
+  - {end_time: 36018.56758100486, start_size: 979.0826539779869}
+  - {end_time: 0, start_size: 979.0826539779869, end_size: 59938.67962577077}
+migrations:
+- demes: [MSL, GBR]
+  rate: 1.0114164425310105e-05
