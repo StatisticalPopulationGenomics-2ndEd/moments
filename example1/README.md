@@ -48,8 +48,58 @@ fig.savefig("model.png")
 
 ### Simulating data with msprime
 
+Sample 30 individuals from each population A and B.
+We'll simulate 100 1M sequences, aggregating across replicates
+to construct the SFS.
 ```python
 import msprime
 
-sample_sets = [msprime.SampleSet(), msprime.SampleSet()]
+n = 30
+sample_sets = [msprime.SampleSet(n, "popA"), msprime.SampleSet(n, "popB")]
+demog = msprime.Demography.from_demes(g)
+
+L = 1e6
+u = 1e-8
+r = 1e-8
+
+tss = msprime.sim_ancestry(
+    samples=sample_sets,
+    demography=demog,
+    sequence_length=L,
+    recombination_rate=r,
+    num_replicates=100,
+    random_seed=42
+)
+
+fs = np.zeros((2*n+1, 2*n+1))
+for i, ts in enumerate(tss):
+    mts = msprime.sim_mutations(ts, rate=u, random_seed=i+13)
+    fs_rep = mts.allele_frequency_spectrum(
+        sample_sets=[range(2*n), range(2*n, 4*n)],
+        polarised=True,
+        span_normalise=False
+    )
+    fs += fs_rep
 ```
+
+Visualize the marginal spectra
+```python
+import moments
+
+fs = moments.Spectrum(fs, pop_ids=["popA", "popB"])
+
+moments.Plotting.plot_1d_comp_Poisson(
+    fs.marginalize([1]),
+    fs.marginalize([0]),
+    labels=fs.pop_ids,
+    out="marginal_spectra.png",
+)
+```
+![Marginal SFS](marginal_spectra.png)
+
+By running `fs.Fst()`, we find an FST value of around 0.068.
+
+### Running inference
+
+
+
