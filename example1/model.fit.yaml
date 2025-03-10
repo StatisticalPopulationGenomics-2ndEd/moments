@@ -1,0 +1,20 @@
+description: split-with-migration model for a taxon with an average age of reproduction
+  of three
+time_units: years
+generation_time: 3
+demes:
+- name: ancestral
+  epochs:
+  - {end_time: 3887.106888862449, start_size: 4997.556274391515}
+  - {end_time: 1231.9765885703387, start_size: 6598.611548475151}
+- name: popA
+  ancestors: [ancestral]
+  epochs:
+  - {end_time: 0, start_size: 2018.0625198610546, end_size: 9765.078971476818}
+- name: popB
+  ancestors: [ancestral]
+  epochs:
+  - {end_time: 0, start_size: 6411.993288954451, end_size: 999.5609380209986}
+migrations:
+- {source: popA, dest: popB, rate: 0.00012792934939274533}
+- {source: popB, dest: popA, rate: 0.000248826760183209}
