@@ -1,0 +1,39 @@
+parameters:
+- name: Ne
+  values:
+  - demes:
+      ancestral:
+        epochs:
+          0: start_size
+  lower_bound: 500
+  upper_bound: 50000
+- name: NA
+  values:
+  - demes:
+      popA:
+        epochs:
+          0: start_size
+  lower_bound: 500
+  upper_bound: 50000
+- name: NB
+  values:
+  - demes:
+      popB:
+        epochs:
+          0: start_size
+  lower_bound: 500
+  upper_bound: 50000
+- name: T
+  values:
+  - demes:
+      ancestral:
+        epochs:
+          0: end_time
+  lower_bound: 0
+  upper_bound: 50000
+- name: m
+  values:
+  - migrations:
+      0: rate
+  lower_bound: 1e-8
+  upper_bound: 1e-2
