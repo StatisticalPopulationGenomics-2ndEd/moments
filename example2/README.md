@@ -1,30 +1,31 @@
 ## Example 2: Inferring a model with empirical data 
 
-In this section we use moments to do SFS inference, building a model of archaic admixture involving two modern human populations (MSL, Mende people from Sierre Leone, and GBR, British people from Great Britain) and the Vindija Neanderthal. 
+In this section, we use moments and its Demes interface to fit a model of archaic admixutre to empirical data. Our data set consists of two modern human populations- the Mende from Sierre Leone (MSL) and British from Great Britain (GBR)- and a single Neandertal individual (from Vindija cave in Croatia). We will model the out-of-Africa migration and subsequent Neandertal admixture with GBR and Vindija as proxies. 
 
 ### Estimating the SFS from sequence data
 
-
+The tools we used to estimate the SFS are available in `data`. We lifted sequences for the Vindija Neandertal from genome build hg19 to hg38 to allow direct comparison to a set of recently-resequenced high-coverage 1000 Genomes sequences (Byrska-Bishop et al, 2022).
 
 ### Projecting the estimated SFS down
 
-With close to 100 diploid genomes in each of two populations, the SFS we have estimated is large and we may wish to project it down to smaller sample sizes to speed up parameter optimization. We can also marginalize out populations to obtain single-population spectra.
+With close to 100 diploid genomes spread across two populations, the SFS we have estimated is rather large. We may wish to project it down to a smaller size to speed up optimization. We can also marginalize populations out of the SFS, removing them and further reducing its size.
 
 ```python
 import moments
-sfs = moments.Spectrum.from_file("data/data_msl_gbr_chs_vindija.bp")
+sfs = moments.Spectrum.from_file("spectra/full_MSL_GBR_Vindija")
 sfs.pop_ids
->>> ['MSL', 'CHS', 'GBR', 'Vindija']
+>>> ['MSL', 'GBR', 'Vindija']
 sfs.sample_sizes
->>> array([170, 210, 182,   2])
-# marginalize to MSL
-sfs_msl = sfs.marginalize([1, 2, 3])
+>>> array([170, 182, 2])
+
+# marginalize to MSL and project to a size of 10 diploids
+sfs_msl = sfs.marginalize([1, 2])
 sfs_msl_projected = sfs_msl.project([20])
-sfs_msl_projected.to_file("data/data_msl.bp")
-# marginalize to GBR, MSL and Vindija 
-sfs_3_pop = sfs.marginalize([1])
-sfs_3_pop_projected = sfs_3_pop.project([20, 20, 2])
-sfs_3_pop_projected.to_file("data/data_msl_gbr_vindija.bp")
+sfs_msl_projected.to_file("spectra/MSL")
+
+# project MSL and GBR down to 10 diploids each
+sfs_projected = sfs.project([20, 20, 2])
+sfs_projected.to_file("spectra/MSL_GBR_Vindija")
 ```
 
 Let's plot a comparison between the projected spectra for MSL and GBR:
@@ -33,25 +34,33 @@ Let's plot a comparison between the projected spectra for MSL and GBR:
 import matplotlib.pyplot as plt
 fig = plt.figure()
 ax = plt.subplot(111)
-ax.semilogy(sfs_3_pop_projected.marginalize([1,2]), "-o", ms=6, lw=1, mfc="w", label="MSL")
-ax.semilogy(sfs_3_pop_projected.marginalize([0,2]), "-o", ms=6, lw=1, mfc="w", label="GBR")
+ax.semilogy(sfs_projected.marginalize([1,2]), "-o", ms=6, lw=1, mfc="w", label="MSL")
+ax.semilogy(sfs_projected.marginalize([0,2]), "-o", ms=6, lw=1, mfc="w", label="GBR")
 ax.set_xlabel("Derived allele frequency")
 ax.set_ylabel("Count")
 ax.set_xticks([0, 5, 10, 15, 20])
 ax.legend()
-plt.savefig("figures/msl_gbr_projected.png", dpi=244)
+plt.savefig("comp_1d_MSL_GBR.png", dpi=244)
 ```
 
-![Marginal SFS for MSL and GBR](figures/msl_gbr_projected.png)
+![Marginal SFS for MSL and GBR](comp_1d_MSL_GBR.png)
+
+Let's also plot a 2d spectrum for MSL and GBR using `moments.Plotting`:
+
+```python
+moments.Plotting.plot_single_2d_sfs(sfs_projected.marginalize([2]), out="comp_2d_MSL_GBR.png")
+```
+
+![Joint SFS for MSL and GBR](comp_2d_MSL_GBR.png)
 
 
 ### Fitting marginal demographies 
 
-Before fitting the three-population model, we can estimate parameters for single-population models. This should help us to select reasonable topologies and initial parameter values before approaching more complex multi-population models. Let's begin with the MSL population and fit a model with two successive size changes. We assume a generation time of 29 years.
+Before fitting the three-population model, we can estimate parameters for single-population models. This should help us to select reasonable topologies and initial parameter values before approaching more complex multi-population models. Let's begin with the MSL population and fit a 3-epoch model. We assume a generation time of 29 years.
 
-Our model: ([MSL_model.yaml](models/MSL_model.yaml))
+Our model: ([MSL_model.yaml](models/MSL/MSL_model.yaml))
 ```YAML
-description: A 3-epoch model with piecewise-constant population sizes for the MSL population
+description: 3-epoch model for the MSL population with piecewise-constant population sizes
 time_units: years
 generation_time: 29
 demes: 
@@ -62,7 +71,7 @@ demes:
   - {start_size: 40000, end_time: 0}
 ```
 
-We specify these parameters: ([options_MSL_model.yaml](options/options_MSL_model.yaml))
+We specify these parameters: ([options_MSL_model.yaml](models/MSL/options_MSL.yaml))
 ```YAML
 parameters: 
 - name: N_A 
@@ -113,95 +122,80 @@ constraints:
   constraint: greater_than
 ```
 
-Here we want to fit models with physical units (e.g. the physical mutation rate), so we need to know the length of sequence from which our data was estimated (here, $L=960,914,001$) and to select an estimate of the mutation rate/bp per generation (we use $u=1.5\cdot10^{-8}$). Because our data is unfolded, we may choose to either fit the unfolded SFS (where it is useful to simaltaneously fit a parameter for the probability of ancestral state misidentification) or to fold it and avoid this. We fit the unfolded SFS to the model shown above using:
+Let's take $u=1.5\cdot10^{-8}$ as an estimate of the human nucleotide mutation rate per generation. The optimization function in `moments.Demes` takes the compound parameter `uL`, so we must also know the length of sequence from which we estimated the SFS (here, $L=960,914,001$). We may choose to fit either the folded or unfolded SFS; when fitting an unfolded SFS, we can incorporate error in the assigment of ancestral nucleotide states into our inference by simaltaneously estimating a 'misid' probability. 
 
 ```python
-data = moments.Spectrum.from_file("data/data_msl.bp")
-graph_file = "models/MSL_model.yaml"
-options_file = "options/options_MSL_model.yaml"
-output = "fit_models/MSL_misid_fit.yaml"
+import moments
+
+# define paths and parameters
+graph_file = "models/MSL/MSL_model.yaml"
+options_file = "models/MSL/options_MSL.yaml"
+data_file = "spectra/MSL"
+output = "models/MSL/MSL_model.misid_fit.yaml"
 u = 1.5e-8
 L = 960914001
-uL = u * L 
-misid_guess = 0.02
-result = moments.Demes.Inference.optimize(
+misid_guess = 0.03
+
+data = moments.Spectrum.from_file(data_file)
+
+# fit using the Powell algorithm
+param_names, fit_params, ll = moments.Demes.Inference.optimize(
     graph_file, 
     options_file, 
     data, 
-    maxiter=2000,
+    maxiter=10000,
     fit_ancestral_misid=True, 
     misid_guess=misid_guess,
-    uL=uL, 
-    verbose=10,
+    uL=u * L, 
+    verbose=50,
     output=output, 
-    method="lbfgsb"
+    method="powell"
 )
-param_names, fit_params, ll = result
-print(f"LL={-ll}")
+
+# print results
+print("Best-fit log-likelihood:", -ll)
+print("Best-fit parameters:")
 for name, val in zip(param_names, fit_params):
     print(f"{name}\t{val:.3}")
-
->>> 10      , -48328.6    , array([ 19992.8    ,  74946.7    ,  24990.7    ,  19996      ,  39983.8    ,  0.0175654  ])
-...
->>> 320     , -524.301    , array([ 13831.4    ,  527870     ,  24419.5    ,  17686.3    ,  27951      ,  0.0346857  ])
->>> LL=-524.5443426260026
->>> N_A     1.38e+04
->>> T_AMH   5.28e+05
->>> N_AMH   2.44e+04
->>> T_MSL   1.75e+04
->>> N_MSL   2.8e+04
->>> p_misid 0.0347
 ```
 
-We can then create plots showing the size history we've inferred and a comparison of the empirical and expected SFS.
+This code will print convergence messages and the final best-fit parameters. After fitting, we can create plots showing the size history we've inferred and a comparison of the empirical and expected SFS.
 
 ```python
-import demes
-import demesdraw
-fit_graph = demes.load(output)
-plt.savefig("figures/msl_size_history.png", dpi=244)
-fit_misid = fit_params[-1]
-model = moments.Demes.SFS(fit_graph, samples={"MSL": 20}, u=u, L=L)
-model = moments.Misc.flip_ancestral_misid(model, fit_misid)
-labels = ["Data", f"Model, ll={-ll:.3}"]
-moments.Plotting.plot_1d_comp_Poisson(model, data, out="figures/msl_comp.png", residual="linear")
+import demes 
+import demesdraw 
+import matplotlib.pyplot as plt
+
+p_misid = 0.0318905
+
+# load data and obtain model expectations (adjusted by fit misid pr.)
+graph = demes.load(graph_file)
+model = moments.Demes.SFS(graph, samples={"MSL": 20}, u=u, L=L)
+model = moments.Misc.flip_ancestral_misid(model, p_misid)
+
+# plot size history
+demesdraw.size_history(graph)
+plt.savefig("MSL_model.misid_fit.size_history.png")
+plt.close()
+
+# plot SFS fit
+moments.Plotting.plot_1d_comp_Poisson(
+    model, data, residual="linear", out="MSL_model.misid_fit.comp_1d.png"
+)
 ```
 
-![Size history for MSL](figures/msl_size_history.png)
-![Empirical and best-fit SFS for MSL](figures/msl_comp.png)
+![Inferred MSL size history](models/MSL/MSL_model.misid_fit.size_history.png)
+![Empirical and best-fit SFS for MSL](models/MSL/MSL_model.misid_fit.comp_1d.png)
 
 
 ### Fitting a joint demography
 
-We start out by fitting a demography that unites MSL and GBR:
 
-([msl_gbr_model.yaml](models/msl_gbr_model.yaml))
+### Iteratively introducing complexity
 
-```YAML
-description: Simple OOA model with MSL, GBR demes and ancestral expansion.
-time_units: years
-generation_time: 29
-demes:
-- name: A
-  epochs: 
-  - {end_time: 3e5, start_size: 14000}
-- name: AMH
-  ancestors: [A]
-  epochs:
-  - {end_time: 6e4, start_size: 20000}
-- name: MSL 
-  ancestors: [AMH]
-  epochs:
-  - {end_time: 0, start_size: 28000}
-- name: GBR
-  ancestors: [AMH]
-  epochs: 
-  - {end_time: 4e4, start_size: 1000}
-  - {end_time: 0, end_size: 60000}
-migrations:
-- demes: [MSL, GBR]
-  rate: 1e-5
-```
 
 
 ### Computing confidence invervals
+
+
+### References

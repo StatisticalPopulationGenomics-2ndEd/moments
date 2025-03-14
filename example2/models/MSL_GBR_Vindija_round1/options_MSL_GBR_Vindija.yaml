@@ -1,0 +1,43 @@
+parameters: 
+- name: T_NMH
+  description: Split time of Neandertal and AMH
+  upper_bound: 1e6
+  lower_bound: 440000
+  values: 
+    - demes: 
+        A: 
+          epochs: 
+            0: end_time     
+- name: N_N
+  description: Effective size of Neandertal demes
+  lower_bound: 100
+  values: 
+    - demes: 
+        N: 
+          epochs: 
+            0: start_size 
+        NI: 
+          epochs: 
+            0: start_size 
+        Vindija: 
+          epochs: 
+            0: start_size               
+- name: T_NI
+  description: Divergence time of `NI` and Vindija
+  lower_bound: 55000
+  values: 
+    - demes: 
+        N: 
+          epochs: 
+            0: end_time 
+- name: p
+  desciprion: Admixture proportion from `NI` to GBR
+  lower_bound: 1e-5
+  upper_bound: 0.10
+  values: 
+    - pulses: 
+        0:  
+          proportions: 0
+constraints:
+- params: [T_NMH, T_NI]
+  constraint: greater_than

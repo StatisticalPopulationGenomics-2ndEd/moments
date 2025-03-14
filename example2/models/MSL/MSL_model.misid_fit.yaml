@@ -1,0 +1,10 @@
+description: 3-epoch model for the MSL population with piecewise-constant population
+  sizes
+time_units: years
+generation_time: 29
+demes:
+- name: MSL
+  epochs:
+  - {end_time: 435405.3549323287, start_size: 14285.393987501022}
+  - {end_time: 15026.595937521077, start_size: 26074.67467727549}
+  - {end_time: 0, start_size: 20962.360930786286}

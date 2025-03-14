@@ -1,0 +1,72 @@
+parameters:
+- name: N_A 
+  description: Ancestral population size
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        A: 
+          epochs: 
+            0: start_size
+- name: T_EXP
+  decription: Time of ancestral size expansion
+  upper_bound: 1e6
+  values: 
+    - demes: 
+        A: 
+          epochs: 
+            0: end_time
+- name: N_AMH
+  description: Ancestral size following expansion
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        AMH: 
+          epochs: 
+            0: start_size
+- name: T_OOA
+  description: Divergence time of MSL, GBR
+  lower_bound: 30e3
+  values: 
+    - demes: 
+        AMH:  
+          epochs: 
+            0: end_time
+- name: N_MSL
+  description: Final size of MSL 
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        MSL: 
+          epochs: 
+            0: start_size
+- name: N_OOA
+  description: Initial size of GBR 
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        GBR: 
+          epochs: 
+            0: start_size
+- name: N_GBR
+  description: Final size of GBR
+  lower_bound: 100
+  upper_bound: 200000
+  values: 
+    - demes: 
+        GBR: 
+          epochs: 
+            0: end_size
+- name: m
+  description: Symmetric migration rate between MSL, GBR
+  lower_bound: 1e-8
+  upper_bound: 1e-3
+  values: 
+    - migrations: 
+        0: rate
+constraints:
+- params: [T_EXP, T_OOA]
+  constraint: greater_than

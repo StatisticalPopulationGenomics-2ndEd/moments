@@ -1,0 +1,262 @@
+## Prepares .vcf files by masking and annotating sites with ancestral states, then
+## uses them to estimate the SFS. 
+
+
+# 1KG populations are defined in http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/
+
+ARCHAIC_SAMPLES = ["Altai", "Chagyrskaya", "Denisova", "Vindija"]
+CHROMS = list(range(1, 23))
+
+
+vcfs_1kG = "/media/nick/Elements/Data/ThousandGenomes_hg38/20220422_3202_phased_SNV_INDEL_SV/"
+vcfs_Archaic = "/media/nick/Elements/Data/Archaic_hg38/"
+
+
+rule all:
+    input:
+        "spectra/sfs_genomewide" 
+
+
+## Build a joint mask
+
+
+rule get_gvcf_coverage:
+    input:
+        script = "../tools/get_vcf_coverage.py",
+        vcf_file = vcfs_Archaic + "{sample}/{sample}_liftover_chr{chrom}.vcf.gz"
+    output:
+        bed_file = "masks/gvcf_coverage/{sample}_coverage_chr{chrom}.bed.gz"
+    shell:
+        """
+        python {input.script} -i {input.vcf_file} -o {output.bed_file}
+        """
+
+
+rule get_ancestral_seq_coverage:
+    input:
+        script = "../tools/get_fa_coverage.py",
+        fa_file = "homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor_{chrom}.fa"
+    output:
+        bed_file = "masks/ancseq_coverage/ancseq_coverage_chr{chrom}.bed.gz"
+    shell:
+        """
+        python {input.script} -f {input.fa_file} -o {output.bed_file}
+        """
+
+
+rule download_strict_mask:
+    output:
+        bed_file = "masks/strict/20160622.allChr.mask.bed"
+    params:
+        link = ("https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/"
+        "1000_genomes_project/working/20160622_genome_mask_GRCh38/StrictMask/"
+        "20160622.allChr.mask.bed")
+    shell:
+        """
+        wget {params.link} -O {output.bed_file}
+        """
+
+
+rule separate_strict_mask:
+    input:
+        bed_file = "masks/strict/20160622.allChr.mask.bed"
+    output:
+        bed_file = "masks/strict/20160622.chr{chrom}.mask.bed"
+    params:
+        chromnum = "chr{chrom}"
+    shell:
+        """
+        cat {input.bed_file} | awk '$1 == "{params.chromnum}"' > {output.bed_file}
+        """
+
+
+rule combine_masks:
+    input: 
+        script = "../tools/combine_masks.py",
+        strict = "masks/strict/20160622.chr{chrom}.mask.bed",
+        gvcf_coverage = expand(
+            "masks/gvcf_coverage/{sample}_coverage_chr{{chrom}}.bed.gz",
+            sample=ARCHAIC_SAMPLES
+        ),
+        ancseq_coverage = "masks/ancseq_coverage/ancseq_coverage_chr{chrom}.bed.gz",
+        exons = "masks/exons/exons_chr{chrom}.bed.gz",
+        promoters = "masks/promoters/promoters_chr{chrom}.bed.gz"
+    output: 
+        bed_file = "combined_mask/combined_mask_chr{chrom}.bed.gz"
+    shell:
+        """
+        python {input.script} \
+            --isec {input.strict} {input.gvcf_coverage} {input.ancseq_coverage} \
+            --subtract {input.exons} {input.promoters} \
+            --flank 10000 \
+            -o {output.bed_file}
+        """
+
+
+## extract SNP data from input .vcf files. then mask and annotate it
+
+
+rule extract_gvcf_variants:
+    input:
+        vcf_file = vcfs_Archaic + "{sample}/{sample}_liftover_chr{chrom}.vcf.gz"
+    output:
+        vcf_file = "gvcf_variants/{sample}_variants_chr{chrom}.vcf.gz"
+    shell:
+        """
+        bcftools view -v snps {input.vcf_file} | \
+        bcftools annotate \
+            -x INFO,^FORMAT/GT \
+            -o {output.vcf_file} \
+            -W
+        """
+
+
+## subset CHS, GBR, MSL sequences from 1000 genomes data and keep only SNPs.
+rule extract_1kg_samples:
+    input:
+        vcf_file = vcfs_1kG + "1kGP_high_coverage_Illumina.chr{chrom}.filtered.SNV_INDEL_SV_phased_panel.vcf.gz",
+        sample_file = "samples_1kG.txt"
+    output:
+        vcf_file = "1kG_subset/1kGP_high_coverage_Illumina.chr{chrom}.filtered.subset_SNV_phased_panel.vcf.gz"
+    shell:
+        """
+        bcftools view \
+            -v snps \
+            -S {input.sample_file} \
+            {input.vcf_file} | \
+        bcftools annotate \
+            -x INFO,^FORMAT/GT \
+            -o {output.vcf_file} \
+            -W
+        """
+
+
+## merge together archaic-variant and subset-1kG .vcf files
+rule merge_vcf_files:
+    input:
+        vcf_files = ["1kG_subset/1kGP_high_coverage_Illumina.chr{chrom}.filtered.subset_SNV_phased_panel.vcf.gz"] \
+            + expand("gvcf_variants/{sample}_variants_chr{{chrom}}.vcf.gz", sample=ARCHAIC_SAMPLES)
+    output:
+        vcf_file = "merged_variants/merged_variants_chr{chrom}.vcf.gz"
+    params:
+        intermediate = "merged_variants/merged_variants_chr{chrom}.vcf"
+    shell:
+        """
+        bcftools merge \
+            -0 \
+            -o {params.intermediate} \
+            {input.vcf_files}
+        bgzip {params.intermediate}
+        """
+
+
+rule index_merged_vcfs:
+    input: 
+        vcf_file = "merged_variants/merged_variants_chr{chrom}.vcf.gz"
+    output:
+        idx_file = "merged_variants/merged_variants_chr{chrom}.vcf.gz.csi"
+    shell:
+        """
+        bcftools index {input.vcf_file}
+        """
+
+
+## mask out sites that we do not want to consider from merged .vcfs
+rule mask_vcfs:
+    input:
+        vcf_file = "merged_variants/merged_variants_chr{chrom}.vcf.gz",
+        idx_file = "merged_variants/merged_variants_chr{chrom}.vcf.gz.csi",
+        bed_file = "combined_mask/combined_mask_chr{chrom}.bed.gz"
+    output:
+        vcf_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz"
+    shell:
+        """
+        bcftools view -R {input.bed_file} -o {output.vcf_file} {input.vcf_file}
+        """
+
+rule index_masked_vcfs:
+    input: 
+        vcf_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz"
+    output:
+        idx_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz.csi"
+    shell:
+        """
+        bcftools index {input.vcf_file}
+        """
+
+
+rule write_annotation_files:
+    input: 
+        script = "../tools/get_ancestral_states.py",
+        vcf_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz",
+        fa_file = "homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor_{chrom}.fa"
+    output: 
+        tab_file = "annotations/ancestral_state_chr{chrom}.tab"
+    shell: 
+        """
+        python {input.script} \
+            -v {input.vcf_file} \
+            -f {input.fa_file} \
+            -o {output.tab_file}
+        """
+
+
+rule bgzip_annotation_files:
+    input: 
+        tab_file = "annotations/ancestral_state_chr{chrom}.tab"
+    output: 
+        tab_file = "annotations/ancestral_state_chr{chrom}.tab.gz",
+        idx_file = "annotations/ancestral_state_chr{chrom}.tab.gz.tbi"
+    shell: 
+        """
+        bgzip -k {input.tab_file}
+        tabix -s1 -b2 -e2 {output.tab_file}
+        """
+
+
+## annotate ancestral states of sites in masked .vcfs
+rule annotate_ancestral_state:
+    input:
+        vcf_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz",
+        idx_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz.csi",
+        annot_file = "annotations/ancestral_state_chr{chrom}.tab.gz",
+        header_file = "header.txt"
+    output:
+        vcf_file = "annotated_variants/annotated_variants_chr{chrom}.vcf.gz"
+    shell:
+        """ 
+        bcftools annotate \
+            -a {input.annot_file} \
+            -c CHROM,POS,+INFO/AA \
+            -o {output.vcf_file} \
+            -h {input.header_file} \
+            {input.vcf_file}
+        """
+
+
+rule parse_sfs:
+    input:
+        script = "../tools/parse_sfs.py",
+        vcf_file ="annotated_variants/annotated_variants_chr{chrom}.vcf.gz",
+        pop_file = "populations.txt"
+    output:
+        out_file = "spectra/sfs_chrom{chrom}.pkl"
+    shell:
+        """
+        python {input.script} \
+            -v {input.vcf_file} \
+            -p {input.pop_file} \
+            -o {output.out_file}
+        """
+
+
+rule combine_sfs:
+    input:
+        script = "../tools/sum_sfs.py",
+        sfs_files = expand("spectra/sfs_chrom{chrom}.pkl", chrom=CHROMS),
+    output:
+        out_file = "spectra/sfs_genomewide" 
+    shell:
+        """
+        python {input.script} -i {input.sfs_files} -o {output.out_file}
+        """

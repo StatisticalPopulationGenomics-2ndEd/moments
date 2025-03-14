@@ -1,0 +1,9 @@
+description: 3-epoch model for the GBR population, incorporating OOA bottleneck in the second epoch and exponential expansion in the third
+time_units: years
+generation_time: 29
+demes:
+- name: GBR
+  epochs:
+  - {end_time: 66112.77204292141, start_size: 14481.872760272166}
+  - {end_time: 66112.76868488411, start_size: 2057.2962408759286}
+  - {end_time: 0, start_size: 2057.2962408759286, end_size: 20648.48942537629}
