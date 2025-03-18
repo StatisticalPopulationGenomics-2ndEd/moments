@@ -13,6 +13,8 @@
 % local definitions
 \newcommand{\aprcomment}[1]{{\textcolor{blue}{APR: #1}}}
 
+\newcommand{\moments}{\texttt{moments}\xspace}
+
 \begin{document}
 
 \title{Demographic inference using the SFS with Moments and Demes}
@@ -24,11 +26,30 @@
 \affil[*]{apragsdale@wisc.edu}
 \maketitle
 
-\abstract{
-Placeholder
-}
+\begin{abstract}
+    Placeholder
+\end{abstract}
 
 \section{Introduction}
+
+The genetic composition within a sample of individuals is shaped by their
+genome biology and evolutionary history. Variation resulting from this history
+is fully described by the ancestral relationships among samples at each locus
+in the genome and how they change along a chromosome due to recombination (that
+is, information stored in the Ancestral Recombination Graph [cites]). However,
+the ARG can be large and unwieldy, and methods for reconstructing history
+directly from the ARG, while showing promise [cite], are in their infancy and
+so far limited in application and scalability [cite]. Instead, evolutionary
+inference using informative summaries provides a tractable and powerful
+alternative for learning parameters of population history, natural selection and
+genome biology.
+
+One such summary that has seen wide use is the site frequency spectrum (SFS),
+which stores the counts (observed or expected) of alleles carried by a given
+number of genomes in a set of samples. Like any summary of the data, the SFS
+discards information relative to the ARG -- in this case, loci are treated
+independently so that haplotypic information is lost. Nonetheless, a great deal
+can be learned from the 
 
 What moments is, what type of data it uses, general framework for inference
 \begin{enumerate}
@@ -88,11 +109,14 @@ def myFunc():
 
 \section{Considerations and caveats}
 
-Incluce here general ideas about the strengths and weaknesses of various approaches
-in population genetic inference, including when using the SFS.
-
-Challenges in finding local/global optima. Challenges in exploring parameter space.
-
+\begin{enumerate}
+    \item Incluce here general ideas about the strengths and weaknesses of
+        various approaches in population genetic inference, including when
+        using the SFS.
+    \item Challenges in finding local/global optima.
+    \item Challenges in exploring parameter space.
+    \item Gene dense vs gene sparse genomic architectures among species.
+\end{enumerate}
 
 \bibliographystyle{plainnat}
 \bibliography{paper}
