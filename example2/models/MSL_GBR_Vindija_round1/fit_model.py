@@ -8,7 +8,7 @@ def main():
     graph_file = "MSL_GBR_Vindija_model.yaml"
     options_file = "options_MSL_GBR_Vindija.yaml"
     data_file = "../../spectra/MSL_GBR_Vindija"
-    output = "fits/MSL_GBR_Vindija_model.misid_fit.yaml"
+    output = "MSL_GBR_Vindija_model.misid_fit.yaml"
     u = 1.5e-8
     L = 960914001
     misid_guess = 0.03

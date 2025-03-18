@@ -82,7 +82,7 @@ parameters:
           epochs: 
             0: start_size
 - name: N_OOA
-  description: Size of GBR in 0th epoch
+  description: Start size of GBR
   lower_bound: 100
   upper_bound: 100000
   values: 
@@ -90,14 +90,6 @@ parameters:
         GBR: 
           epochs: 
             0: start_size
-- name: T_GBR
-  description: Start time of GBR exponential increase
-  lower_bound: 1e3
-  values: 
-    - demes: 
-        GBR: 
-          epochs: 
-            0: end_time
 - name: N_GBR
   description: Final size of GBR
   lower_bound: 100
@@ -106,7 +98,7 @@ parameters:
     - demes: 
         GBR: 
           epochs: 
-            1: end_size
+            0: end_size
 - name: m
   description: Rate of symmetric migration between GBR and MSL
   lower_bound: 1e-8
@@ -121,5 +113,4 @@ constraints:
   constraint: greater_than
 - params: [T_EXP, T_OOA]
   constraint: greater_than
-- params: [T_OOA, T_GBR]
-  constraint: greater_than
+

@@ -21,7 +21,8 @@ def main():
     data = moments.Spectrum.from_file(data_file)
 
     # plot size history
-    demesdraw.size_history(graph)
+    ax = plt.subplot(111)
+    demesdraw.size_history(graph, ax=ax)
     plt.savefig("MSL_model.misid_fit.size_history.png")
     plt.close()
 
