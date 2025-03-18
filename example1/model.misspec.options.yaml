@@ -6,7 +6,7 @@ parameters:
         epochs:
           0: start_size
   lower_bound: 500
-  upper_bound: 50000
+  upper_bound: 500000
 - name: NA
   values:
   - demes:
@@ -14,7 +14,7 @@ parameters:
         epochs:
           0: start_size
   lower_bound: 500
-  upper_bound: 50000
+  upper_bound: 500000
 - name: NB
   values:
   - demes:
@@ -22,7 +22,7 @@ parameters:
         epochs:
           0: start_size
   lower_bound: 500
-  upper_bound: 50000
+  upper_bound: 500000
 - name: T
   values:
   - demes:
@@ -30,7 +30,7 @@ parameters:
         epochs:
           0: end_time
   lower_bound: 0
-  upper_bound: 50000
+  upper_bound: 500000
 - name: m
   values:
   - migrations:

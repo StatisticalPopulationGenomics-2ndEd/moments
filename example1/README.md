@@ -8,34 +8,32 @@ the descendent populations change sizes over time and exchange migrants.
 
 The input model ([model.yaml](model.yaml)):
 ```YAML
-description: split-with-migration model for a taxon with an average age of reproduction of three
-generation_time: 3
+description: split-with-migration model, loosely based on a human history (see example 2)
+generation_time: 29
 time_units: years
 demes:
 - name: ancestral
   epochs:
-  - {start_size: 5000, end_time: 2500}
-  - {start_size: 8000, end_time: 1200}
+  - {start_size: 15000, end_time: 300000}
+  - {start_size: 25000, end_time: 75000}
 - name: popA
   ancestors: [ancestral]
   epochs:
-  - {start_size: 2000, end_size: 10000}
+  - {start_size: 30000}
 - name: popB
   ancestors: [ancestral]
   epochs:
-  - {start_size: 6000, end_size: 1000}
+  - {start_size: 1200, end_size: 14000}
 migrations:
-- source: popA
-  dest: popB
-  rate: 1e-4
-- source: popB
-  dest: popA
-  rate: 3e-4
+- demes: [popA, popB]
+  rate: 5e-5
 ```
 
 Using the following to load and plot the model:
 ```python
 import demes, demesdraw, matplotlib.pylab as plt
+import moments
+
 g = demes.load("model.yaml")
 fig = plt.figure(figsize=(5, 4))
 ax = plt.subplot(1, 1, 1)
@@ -49,8 +47,9 @@ fig.savefig("model.png")
 ### Simulating data with msprime
 
 Sample 30 individuals from each population A and B.
-We'll simulate 100 1M sequences, aggregating across replicates
+We'll simulate 500 1Mb sequences, aggregating across replicates
 to construct the SFS.
+[TODO: update with finalized code from simulate_data.py script!]
 ```python
 import msprime
 import numpy as np
@@ -86,14 +85,12 @@ for i, ts in enumerate(tss):
     spectra.append(fs_rep)
 
 fs = np.sum(spectra, axis=0)
+
+fs = moments.Spectrum(fs, pop_ids=["popA", "popB"])
 ```
 
 Visualize the marginal spectra
 ```python
-import moments
-
-fs = moments.Spectrum(fs, pop_ids=["popA", "popB"])
-
 moments.Plotting.plot_1d_comp_Poisson(
     fs.marginalize([1]),
     fs.marginalize([0]),
@@ -110,30 +107,31 @@ By running `fs.Fst()`, we find an FST value of between around 0.065 to 0.07.
 We'll first fit a simpler (misspecified) model that doesn't allow for
 size changes within populations, and assumes a symmetric migration rate.
 
-Our initial model guess is given by [test1.yaml](test1.yaml):
+Our initial model guess is given by [model.misspec.yaml](model.misspec.yaml):
 ```YAML
 description: split-with-migration model, with constant sizes and symmetric migration
-generation_time: 3
+generation_time: 29
 time_units: years
 demes:
 - name: ancestral
   epochs:
-  - {start_size: 5000, end_time: 1500}
+  - {start_size: 10000, end_time: 100000}
 - name: popA
   ancestors: [ancestral]
   epochs:
-  - {start_size: 5000}
+  - {start_size: 20000}
 - name: popB
   ancestors: [ancestral]
   epochs:
-  - {start_size: 5000}
+  - {start_size: 20000}
 migrations:
 - demes: [popA, popB]
   rate: 1e-4
 ```
 
 To run inference using `moments.Demes.Inference`, we also need the parameters
-options file, which may be defined in [test1.options.yaml](test1.options.yaml).
+options file, which may be defined in
+[model.misspec.options.yaml](model.misspec.options.yaml).
 In this file, we specify which parameters to optimize, which values in the
 Demes-specified model to fit, and impose any bounds on those parameters:
 ```YAML
@@ -145,7 +143,7 @@ parameters:
         epochs:
           0: start_size
   lower_bound: 500
-  upper_bound: 50000
+  upper_bound: 500000
 - name: NA
   values:
   - demes:
@@ -153,7 +151,7 @@ parameters:
         epochs:
           0: start_size
   lower_bound: 500
-  upper_bound: 50000
+  upper_bound: 500000
 - name: NB
   values:
   - demes:
@@ -161,7 +159,7 @@ parameters:
         epochs:
           0: start_size
   lower_bound: 500
-  upper_bound: 50000
+  upper_bound: 500000
 - name: T
   values:
   - demes:
@@ -169,7 +167,7 @@ parameters:
         epochs:
           0: end_time
   lower_bound: 0
-  upper_bound: 50000
+  upper_bound: 500000
 - name: m
   values:
   - migrations:
@@ -180,20 +178,35 @@ parameters:
 
 Optimization then can be performed as below:
 ```python
-# The total mutation rate
+# Load the data
+data = moments.Spectrum.from_file("data/data.fs")
+
+# Specify model paths
+g_in = "model.misspec.yaml"
+options = "model.misspec.options.yaml"
+g_out = "model.misspec.out.yaml"
+
+# Parameters from simulated data
+u = 1e-8
+num_reps = 500
+L = 1e6
 U = u * L * num_reps
-# Run the optimization
+
+
+# Run fit
 moments.Demes.Inference.optimize(
-    "test1.yaml",
-    "test1.options.yaml",
-    fs,
+    g_in,
+    options,
+    data,
+    verbose=1,
     method="fmin",
     perturb=1,
     uL=U,
-    output="test1.fit.yaml"
+    output=g_out,
+    overwrite=True
 )
 ```
 
-The output optimized demes model is stored in [test1.fit.yaml](test1.fit.yaml).
+The output optimized demes model is stored in [model.misspec.out.yaml](model.misspec.out.yaml).
 Visualizing this fit:
-![test1.fit.png](test1.fit.png)
+![model.misspec.fit.png](model.misspec.fit.png)

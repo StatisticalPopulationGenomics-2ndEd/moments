@@ -1,23 +1,19 @@
-description: split-with-migration model for a taxon with an average age of reproduction of three
-generation_time: 3
+description: split-with-migration model, loosely based on a human history (see example 2)
+generation_time: 29
 time_units: years
 demes:
 - name: ancestral
   epochs:
-  - {start_size: 5000, end_time: 2500}
-  - {start_size: 8000, end_time: 1200}
+  - {start_size: 15000, end_time: 300000}
+  - {start_size: 25000, end_time: 75000}
 - name: popA
   ancestors: [ancestral]
   epochs:
-  - {start_size: 2000, end_size: 10000}
+  - {start_size: 30000}
 - name: popB
   ancestors: [ancestral]
   epochs:
-  - {start_size: 6000, end_size: 1000}
+  - {start_size: 1200, end_size: 14000}
 migrations:
-- source: popA
-  dest: popB
-  rate: 1e-4
-- source: popB
-  dest: popA
-  rate: 3e-4
+- demes: [popA, popB]
+  rate: 5e-5
