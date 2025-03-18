@@ -1,0 +1,112 @@
+\documentclass[]{article}
+\usepackage[round]{natbib}
+
+\usepackage{fullpage}
+\usepackage{url}
+\usepackage{authblk}
+\usepackage{graphicx}
+\usepackage{color}
+
+% need to have the pythonhighlight.sty in directory
+\usepackage{pythonhighlight}
+
+% local definitions
+\newcommand{\aprcomment}[1]{{\textcolor{blue}{APR: #1}}}
+
+\begin{document}
+
+\title{Demographic inference using the SFS with Moments and Demes}
+\author[1]{Nick Collier}
+%\author[2]{Simon Gravel(?)}
+\author[1,*]{Aaron P. Ragsdale}
+\affil[1]{Department of Integrative Biology, University of Wisconsin--Madison}
+%\affil[2]{McGill University}
+\affil[*]{apragsdale@wisc.edu}
+\maketitle
+
+\abstract{
+Placeholder
+}
+
+\section{Introduction}
+
+What moments is, what type of data it uses, general framework for inference
+\begin{enumerate}
+    \item The SFS -- how its shape is sensitive to population,
+        selection and genome biological parameters
+    \item Demographic inference from the SFS
+    \item Extensions: inference of selection, mutation rates, etc
+    \item Extensions: Multi-allele and multi-locus models
+\end{enumerate}
+
+\section{Interface with Demes}
+
+\begin{enumerate}
+    \item Manipulating and plotting Demes-specified demographic models
+    \item Computing statistics given a Demes model
+    \item Inferring history on a demes model, including specifying parameters to be fit
+\end{enumerate}
+
+\section{Examples}
+
+Two examples, one using simulated data with known parameters, which we try to
+reinfer. And another with actual data (humans + neanderthal). We briefly
+describe these, highlighting the high-level components of the fits. For
+detailed information for each, including managing data, specifying models,
+performing inference, and visualizing results, we refer readers to the GitHub
+(\url{}), which is maintained with up-to-date versioning.
+
+\subsection{Inferring parameters in a simulated isolation-with-migration model}
+
+A python snippet:
+\begin{python}
+dbg = msprime.DemographyDebugger(
+  population_configurations=population_configurations,
+  migration_matrix=migration_matrix,
+  demographic_events=demographic_events)
+dbg.print_history()
+ts = msprime.simulate(
+  population_configurations=population_configurations,
+  migration_matrix=migration_matrix,
+  demographic_events=demographic_events)
+\end{python}
+or
+\begin{python}
+dbg = demography.debug()
+dbg.print_history()
+ts = msprime.simulate(demography=demography)
+\end{python}
+
+This was in discussion of \citet{kelleher2016efficient}.
+
+\subsection{Inferring human-Neanderthal demographic parameters}
+
+\begin{python}
+def myFunc():
+    pass
+\end{python}
+
+\section{Considerations and caveats}
+
+Incluce here general ideas about the strengths and weaknesses of various approaches
+in population genetic inference, including when using the SFS.
+
+Challenges in finding local/global optima. Challenges in exploring parameter space.
+
+
+\bibliographystyle{plainnat}
+\bibliography{paper}
+
+\clearpage
+
+\appendix
+\renewcommand{\thesection}{A\arabic{section}}
+\renewcommand{\theequation}{A\arabic{equation}}
+\renewcommand{\thefigure}{A\arabic{figure}}
+\renewcommand{\thetable}{A\arabic{table}}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+%\section{Appendix} \label{appendix}
+\end{document}

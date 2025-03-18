@@ -5,16 +5,16 @@ generation_time: 3
 demes:
 - name: ancestral
   epochs:
-  - {end_time: 3887.106888862449, start_size: 4997.556274391515}
-  - {end_time: 1231.9765885703387, start_size: 6598.611548475151}
+  - {end_time: 3237.9100276720596, start_size: 4991.364757870144}
+  - {end_time: 1166.0770391598721, start_size: 7292.035078465566}
 - name: popA
   ancestors: [ancestral]
   epochs:
-  - {end_time: 0, start_size: 2018.0625198610546, end_size: 9765.078971476818}
+  - {end_time: 0, start_size: 1733.3574629006885, end_size: 11351.286181823469}
 - name: popB
   ancestors: [ancestral]
   epochs:
-  - {end_time: 0, start_size: 6411.993288954451, end_size: 999.5609380209986}
+  - {end_time: 0, start_size: 5448.8620411735, end_size: 1029.9526482764868}
 migrations:
-- {source: popA, dest: popB, rate: 0.00012792934939274533}
-- {source: popB, dest: popA, rate: 0.000248826760183209}
+- {source: popA, dest: popB, rate: 0.00012053796727136863}
+- {source: popB, dest: popA, rate: 0.0002666450523072491}
