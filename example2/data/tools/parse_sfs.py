@@ -1,10 +1,11 @@
-## parse the SFS from a .vcf file with ancestral state annotations, then save it
+## Parse the SFS from a .vcf file with ancestral state annotations, then save it
+## Uses a function adapted from the `from_data_dict` method of the Spectrum
+## class in moments.Spectrum_mod.
 
 import argparse
 from collections import defaultdict
 import moments 
 import numpy as np
-import pickle 
 
 
 def get_args():
@@ -25,7 +26,8 @@ def get_args():
 
 def compute_sfs(data_dict, pop_ids, sample_sizes, mask_corners=True):
     """
-    copied from moments
+    Compute the SFS from a data dictionary. Details on this format can be found
+    in the moments.Misc module.
     """
     Npops = len(pop_ids)
     fs = np.zeros(np.asarray(sample_sizes) + 1)

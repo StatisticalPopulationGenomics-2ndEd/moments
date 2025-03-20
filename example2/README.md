@@ -298,9 +298,9 @@ After fitting this model using [models/MSL_GBR/fit_model.py](models/MSL_GBR/fit_
 ![2d comparison for MSL_GBR](models/MSL_GBR/MSL_GBR_model.misid_fit.comp_2d.png)
 
 
-### Iteratively introducing complexity
+### Introducing a third population
 
-Now that we have a relatively well-fitting model for two modern human populations, we incorporate a Neandertal branch and fit the relevant parameters. It is useful to do this in multiple stages- here we first fit a few parameters (Neandertal/African modern human divergence time, effective size of Neandertal populations, admixture pulse proportion) to obtain a reasonable fit, then run a round of optimization to further refine all the parameters we have considered so far. Parameters for the first round are specified below in [models/MSL_GBR_Vindija_round1/options_MSL_GBR_Vindija.yaml](models/MSL_GBR_Vindija_round1/options_MSL_GBR_Vindija.yaml).
+Now that we have a relatively well-fitting model for two modern human populations, we incorporate a Neandertal branch and fit the relevant parameters. It is useful to do this in multiple stages- here we first optimize a few parameters (Neandertal/African modern human divergence time, effective size of Neandertal populations, admixture pulse proportion) to obtain a reasonable fit, then run a round of optimization to further refine all the parameters we have considered above. The initial graph is [MSL_GBR_Vindija_model.yaml](models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.yaml) and the parameters are specified in [options_MSL_GBR_Vindija.yaml](models/MSL_GBR_Vindija_round1/options_MSL_GBR_Vindija.yaml):
 ```YAML
 parameters: 
 - name: T_NMH
@@ -347,7 +347,7 @@ constraints:
   constraint: greater_than
 ```
 
-After optimizing these parameters, we run the second round of optimization using the demes graph file produced in the first round and the parameters specified in [models/MSL_GBR_Vindija_round2/options_MSL_GBR_Vindija_round2.yaml](models/MSL_GBR_Vindija_round2/options_MSL_GBR_Vindija_round2.yaml). Our final best-fit model is plotted below;
+We use a single parameter for all Neandertal effective sizes, as the effective size of the NI deme in particular is not likely well-constrained. After optimizing these parameters, we run a second round of optimization using the model inferred in the first round ([MSL_GBR_Vindija_model.misid_fit.yaml](example2/models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.misid_fit.yaml)) and the parameters specified in [options_MSL_GBR_Vindija_round2.yaml](models/MSL_GBR_Vindija_round2/options_MSL_GBR_Vindija_round2.yaml). Our final best-fit model is plotted below.
 
 ![Best-fit model](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.tubes.png)
 ![Best-fit model fit](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.comp_3d.png)

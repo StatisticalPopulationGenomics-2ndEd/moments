@@ -1,0 +1,3 @@
+snakemake
+numpy
+moments-popgen

@@ -10,6 +10,8 @@ import argparse
 import gzip 
 import numpy as np
 
+from lib import *
+
 
 def get_args():
 
@@ -25,34 +27,6 @@ def get_args():
     )
 
     return parser.parse_args()
-
-
-def load_fa_array(file):
-    """
-    Load the characters in a .fa file and return them as a numpy array.
-    """
-    lines = []
-    line0 = None
-    with open(file, "r") as fin:
-        for line in fin:
-            if ">" in line:
-                line0 = line
-                continue
-            lines.append(line.rstrip("\n"))
-    array = np.array([c for c in "".join(lines)])
-
-    return line0, array
-
-
-def write_tab_file(file, positions, states, chromnum):
-
-    openfunc = gzip.open if file.endswith(".gz") else open 
-    with openfunc(file, "wb") as fout:
-        fout.write("#CHROM\tPOS\tSTATE\n".encode())
-        for pos, state in zip(positions, states):
-            lineb = f"{chromnum}\t{pos}\t{state}\n".encode()
-            fout.write(lineb)
-    return
 
 
 def main():

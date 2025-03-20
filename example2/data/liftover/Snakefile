@@ -1,0 +1,155 @@
+"""
+Snakefile for lifting Altai, Chagyrskaya, Vindija Neandertal and Denisova 
+Denisovan genomes over from genome build hg37 to hg38.
+
+This uses the bcftools liftover plugin described here 
+    https://github.com/freeseek/score?tab=readme-ov-file#liftover-vcfs.
+One can download binaries from here
+    https://software.broadinstitute.org/software/score/score_1.20-20240927.zip,
+extract them to ~/bin/bcftools_plugins/ and invoke
+    export BCFTOOLS_PLUGINS=~/bin/bcftools_plugins/
+to use this plugin.
+"""
+
+## defines the directory holding initial .vcf.gz files. 
+input_dir = "data/raw_genomes_hg19/"
+
+## Filenames should have the form
+# {input_dir}/{sample}/chr{chrom}_mq25_mapab100.vcf.gz OR
+# {input_dir}/{sample}/chr{chrom}.noRB.vcf.gz
+
+
+samples = ["Altai", "Chagyrskaya", "Denisova", "Vindija"]
+chroms = list(range(1, 23))
+chrom_names = [f"chr{i}" for i in range(1, 23)]
+
+
+rule all:
+    input:
+        expand("data/liftover/{sample}/{sample}_liftover_chr{chrom}.vcf.gz",
+               sample=samples, chrom=chroms)
+
+
+### download chain file, reference .fasta files ###
+
+
+rule write_chrom_map:
+    output:
+        "data/chrom_map.txt"
+    run:
+        with open(output[0], "w") as fout:
+            for chrom, chrom_name in zip(chroms, chrom_names):
+                fout.write(f"{chrom}\t{chrom_name}\n")
+
+
+rule download_hg19_reference:
+    output: 
+        reference = "data/reference_hg19/hg19_chr{chrom}.fa.gz"
+    shell:   
+        """
+        wget \
+            ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/chromosomes/chr{wildcards.chrom}.fa.gz \
+            -O - | gzip -d > {output.reference}
+        """
+
+
+rule download_hg38_reference:
+    output: 
+        reference = "data/reference_hg38/hg38_chr{chrom}.fa.gz"
+    shell:  
+        """
+        wget \
+            ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr{wildcards.chrom}.fa.gz \
+            -O - | gzip -d > {output.reference}
+        """
+
+
+rule download_chain_file:
+    output: 
+        chain_file = "data/chain/hg19ToHg38.over.chain.gz"
+    shell:   
+        """
+        wget ftp://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz \
+            -O {output.chain_file}
+        """
+
+
+### prepare files in bgzipped format and reformat chromosome numbers ###
+# e.g. from `22` to `chr22`. this is for compatability with the chain file and references
+
+
+rule prepare_bgzipped_files:
+    input: 
+        vcf_file = input_dir + "{sample}/chr{chrom}_mq25_mapab100.vcf.gz",
+        chrom_map = "data/chrom_map.txt"
+    output:
+        vcf_file = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz"
+    params:
+        intermediate =  "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf"
+    shell:
+        """
+        bcftools annotate \
+            --rename-chrs {input.chrom_map} \
+            -o {params.intermediate} \
+            {input.vcf_file} 
+        bgzip {params.intermediate}
+        """
+
+
+rule prepare_bgzipped_files_Chagyrskaya:
+    input: 
+        vcf_file = input_dir + "{sample}/chr{chrom}.noRB.vcf.gz",
+        chrom_map = "data/chrom_map.txt"
+    output:
+        vcf_file = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz"
+    params:
+        intermediate = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf",
+    shell:
+        """
+        bcftools annotate \
+            --rename-chrs {input.chrom_map} \
+            -o {params.intermediate} \
+            {input.vcf_file} 
+        bgzip {params.intermediate}
+        """
+
+
+### prepare .csi index files ###
+
+
+rule index_input_vcf_files:
+    input: 
+        vcf_file = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz"
+    output:
+        csi_file = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz.csi"
+    shell:
+        """
+        bcftools index {input.vcf_file}
+        """
+
+
+### perform liftover and sort output files ###
+
+
+rule liftover_vcfs:
+    input: 
+        input_csi = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz.csi",
+        input_vcf = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz",
+        reference_hg19 = "data/reference_hg19/hg19_chr{chrom}.fa.gz",
+        reference_hg38 = "data/reference_hg38/hg38_chr{chrom}.fa.gz",
+        chain_file = "data/chain/hg19ToHg38.over.chain.gz",
+        chrom_map = "data/reverse_chrom_map.txt"
+    output: 
+        lifted_vcf = "data/liftover/{sample}/{sample}_liftover_chr{chrom}.vcf.gz",
+        reject_vcf = "data/rejected/{sample}/{sample}_rejected_chr{chrom}.vcf.gz"
+    shell: 
+        """
+        bcftools +liftover --no-version -Oz {input.input_vcf} -- \
+            -s {input.reference_hg19} \
+            -f {input.reference_hg38} \
+            -c {input.chain_file} \
+            --reject {output.reject_vcf} \
+            --write-reject | \
+        bcftools sort -o {output.lifted_vcf} -W 
+        """
+ 

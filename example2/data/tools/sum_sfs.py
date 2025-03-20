@@ -1,10 +1,10 @@
-## add together spectra from several saved .sfs files and write the sum
+## add together spectra from several saved .sfs files and write the sum. Also
+## marginalizes to the populations MSL, CHS, GBR, Vindija
 
 import argparse
 from collections import defaultdict
 import moments 
 import numpy as np
-import pickle 
 
 
 def get_args():

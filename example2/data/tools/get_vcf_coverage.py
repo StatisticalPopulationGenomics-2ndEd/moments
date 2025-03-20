@@ -7,6 +7,8 @@ import argparse
 import gzip
 import numpy as np 
 
+from lib import *
+
 
 def get_args():
 
@@ -18,18 +20,6 @@ def get_args():
         "-o", "--out_file", required=True
     )
     return parser.parse_args()
-
-
-def write_bedfile(file, regions, chromnum):
-    """
-    write a .bed file (supports .gz) from an array of mask regions.
-    """
-    openfunc = gzip.open if file.endswith(".gz") else open 
-    with openfunc(file, "wb") as fout:
-        for start, end in regions:
-            lineb = f"{chromnum}\t{start}\t{end}\n".encode()
-            fout.write(lineb)
-    return
 
 
 def main():

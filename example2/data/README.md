@@ -1,1 +1,1 @@
- 
+This directory contains the materials needed to reproduce our SFS. In [liftover](liftover) is a Snakefile that lifts over archaic human sequences from genome build hg19 to build hg38, allowing a direct comparison with recently sequenced modern human genomes. The pipeline for processing VCF files and estimating the SFS from them can be found in [parsing](parsing). 
