@@ -46,11 +46,10 @@ fig.savefig("model.png")
 
 ### Simulating data with msprime
 
-We suppose we sample 30 individuals from each population A and B.
-We'll simulate 500 1Mb sequences, aggregating across replicates
-to construct the SFS and to approximate the process of creating
-bootstrapped replicate spectra.
-
+We suppose we sample 30 individuals from each population A and B. We'll
+simulate 500 1Mb sequences, aggregating across replicates to construct the SFS
+and to approximate the process of creating bootstrapped replicate spectra. The
+python script used for simulating data is [simulate_data.py](simulate_data.py).
 
 Visualize the marginal spectra:
 ```python
@@ -207,4 +206,85 @@ we use `demesdraw` to plot output models. The plotting script is also found
 in this directory.
 ![Fit models](model.fits.png)
 
+Model misspecification can cause large biases in inferred parameters, which can
+influence our interpretation of demographic history. Here, we've seen that
+ignoring size changes in the history of the population biases the inferred
+divergence times of populations. [Momigliano et al.
+(2020)](https://academic.oup.com/mbe/article/38/7/2967/6149129) have previously
+demonstrated this effect, finding that when the shared ancestral population
+experiences an expansion prior to the time of divergence, split times are
+systematically overestimated if that feature of the history is not accounted
+for.
+
 ### Confidence intervals
+
+Parameter uncertainties can be computed using two methods: the Fisher
+Information Matrix (FIM) or the Godambe Information Matrix (GIM) approaches.
+The FIM approach makes the assumption that all sites in the SFS are
+independent, and therefore will underestimate standard errors due to linkage
+between sites. Linkage leads to non-independence of data, so the "effective"
+number of sites is lower than the actual number of sites aggregated in the SFS.
+
+```python
+uncerts_FIM = moments.Demes.Inference.uncerts(
+    g_out,
+    options,
+    data,
+    uL=U,
+    method="FIM",
+)
+
+print("Using FIM:")
+print("Param\tBest fit value\t\tCIs (two standard errors)")
+for p, v, u in zip(params, vals, uncerts_FIM):
+    print(f"{p}\t{v}\t{v-2*u}\t{v+2*u}")
+```
+```
+Using FIM:
+Param	Best fit value		CIs (two standard errors)
+Ne	15324.101946214449	15286.037586035543	15362.166306393354
+NA	28453.36696520237	28349.157840481796	28557.576089922946
+NB	5922.663260471864	5901.521301929835	5943.805219013893
+T	181743.50274735267	180224.7190832122	183262.28641149314
+m	6.47082934291272e-05	6.432508087886291e-05	6.50915059793915e-05
+```
+
+We note that the confidence intervals are very narrow.
+
+Instead, the GIM approach attempts to correct for this non-independence of data
+using bootstrap replicates (constructed by sampling with replacement of blocks
+of the genome), as described in [Coffman et al.
+(2016)](https://academic.oup.com/mbe/article/33/2/591/2579696). In the simulation
+script, we previously simulated bootstrap replicates, which are provided as a list
+of frequency spectra.
+
+```python
+with gzip.open("data/bootstrapped_data.pkl.gz", "rb") as fin:
+    bs_data = pickle.load(fin)
+
+uncerts_GIM = moments.Demes.Inference.uncerts(
+    g_out,
+    options,
+    data,
+    bootstraps=bs_data,
+    uL=U,
+    method="GIM",
+)
+
+print("Using GIM")
+print("Param\tBest fit value\t\tCIs")
+for p, v, u in zip(params, vals, uncerts_GIM):
+    print(f"{p}\t{v}\t{v-2*u}\t{v+2*u}")
+```
+```
+Using GIM
+Param	Best fit value		CIs
+Ne	15324.101946214449	15226.701700325317	15421.50219210358
+NA	28453.36696520237	28148.309068928713	28758.42486147603
+NB	5922.663260471864	5863.737166137908	5981.58935480582
+T	181743.50274735267	176102.81772249175	187384.1877722136
+m	6.47082934291272e-05	6.321297805464062e-05	6.62036088036138e-05
+```
+
+Here, confidence intervals are wider, reflecting the underestimation of
+uncertainty using the FIM approach compared to the GIM approach.
