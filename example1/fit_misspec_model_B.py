@@ -6,9 +6,9 @@ import pickle
 data = moments.Spectrum.from_file("data/data.fs")
 
 # Specify model paths
-g_in = "model.misspec.yaml"
-options = "model.misspec.options.yaml"
-g_out = "model.misspec.out.yaml"
+g_in = "model.misspecB.yaml"
+options = "model.misspecB.options.yaml"
+g_out = "model.misspecB.out.yaml"
 
 # Parameters from simulated data
 u = 1e-8
@@ -26,7 +26,8 @@ ret = moments.Demes.Inference.optimize(
     perturb=1,
     uL=U,
     output=g_out,
-    overwrite=True
+    overwrite=True,
+    verbose=1,
 )
 # ret stores parameter names, optimal values, and the log-likelihood
 params, vals, ll = ret
@@ -56,14 +57,12 @@ uncerts_GIM = moments.Demes.Inference.uncerts(
 )
 
 print("Using FIM:")
-print("Param\tBest fit value\t\tCIs")
+print("Param\tBest fit value\t\tstd. err.")
 for p, v, u in zip(params, vals, uncerts_FIM):
-    print(f"{p}\t{v}\t{v-2*u}\t{v+2*u}")
-
-
+    print(f"{p}\t{v}\t{u}")
 
 print("Using GIM")
-print("Param\tBest fit value\t\tCIs")
+print("Param\tBest fit value\t\tstd. err.")
 for p, v, u in zip(params, vals, uncerts_GIM):
-    print(f"{p}\t{v}\t{v-2*u}\t{v+2*u}")
+    print(f"{p}\t{v}\t{u}")
 

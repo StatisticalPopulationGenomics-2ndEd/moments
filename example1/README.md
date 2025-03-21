@@ -6,9 +6,9 @@ the descendent populations change sizes over time and exchange migrants.
 
 ### The ground-truth demographic model
 
-The input model ([model.yaml](model.yaml)):
+The input model ([model.yaml](models_and_fits/model.yaml)), which is loosely
+based on inferences of human history (see example 2):
 ```YAML
-description: split-with-migration model, loosely based on a human history (see example 2)
 generation_time: 29
 time_units: years
 demes:
@@ -34,7 +34,7 @@ Using the following to load and plot the model:
 import demes, demesdraw, matplotlib.pylab as plt
 import moments
 
-g = demes.load("model.yaml")
+g = demes.load("models_and_fits/model.yaml")
 fig = plt.figure(figsize=(5, 4))
 ax = plt.subplot(1, 1, 1)
 demesdraw.tubes(g, ax=ax)
@@ -46,55 +46,20 @@ fig.savefig("model.png")
 
 ### Simulating data with msprime
 
-Sample 30 individuals from each population A and B.
+We suppose we sample 30 individuals from each population A and B.
 We'll simulate 500 1Mb sequences, aggregating across replicates
-to construct the SFS.
-[TODO: update with finalized code from simulate_data.py script!]
+to construct the SFS and to approximate the process of creating
+bootstrapped replicate spectra.
+
+
+Visualize the marginal spectra:
 ```python
-import msprime
-import numpy as np
+data = moments.Spectrum.from_file("data/data.fs")
 
-n = 30
-sample_sets = [msprime.SampleSet(n, "popA"), msprime.SampleSet(n, "popB")]
-demog = msprime.Demography.from_demes(g)
-
-# simulate 200 1Mb regions
-L = 1e6
-u = 1e-8
-r = 1e-8
-num_reps = 200
-
-tss = msprime.sim_ancestry(
-    samples=sample_sets,
-    demography=demog,
-    sequence_length=L,
-    recombination_rate=r,
-    num_replicates=num_reps,
-    random_seed=42
-)
-
-# get list of replicate spectra
-spectra = []
-for i, ts in enumerate(tss):
-    mts = msprime.sim_mutations(ts, rate=u, random_seed=i+13)
-    fs_rep = mts.allele_frequency_spectrum(
-        sample_sets=[range(2*n), range(2*n, 4*n)],
-        polarised=True,
-        span_normalise=False
-    )
-    spectra.append(fs_rep)
-
-fs = np.sum(spectra, axis=0)
-
-fs = moments.Spectrum(fs, pop_ids=["popA", "popB"])
-```
-
-Visualize the marginal spectra
-```python
 moments.Plotting.plot_1d_comp_Poisson(
-    fs.marginalize([1]),
-    fs.marginalize([0]),
-    labels=fs.pop_ids,
+    data.marginalize([1]),
+    data.marginalize([0]),
+    labels=data.pop_ids,
     out="marginal_spectra.png",
 )
 ```
@@ -104,10 +69,12 @@ By running `fs.Fst()`, we find an FST value of between around 0.065 to 0.07.
 
 ### Running inference
 
-We'll first fit a simpler (misspecified) model that doesn't allow for
-size changes within populations, and assumes a symmetric migration rate.
+We'll first fit a two simpler (misspecified) models that don't allow for
+size changes within the ancestral populations.
 
-Our initial model guess is given by [model.misspec.yaml](model.misspec.yaml):
+The first model assumes constant sizes in each of the three demes (the
+ancestral population and the two sampled populations). Our initial model guess
+is given by [model.misspec.yaml](models_and_fits/model.misspec.yaml):
 ```YAML
 description: split-with-migration model, with constant sizes and symmetric migration
 generation_time: 29
@@ -130,8 +97,8 @@ migrations:
 ```
 
 To run inference using `moments.Demes.Inference`, we also need the parameters
-options file, which may be defined in
-[model.misspec.options.yaml](model.misspec.options.yaml).
+options file, which here is defined in
+[model.misspec.options.yaml](models_and_fits/model.misspec.options.yaml).
 In this file, we specify which parameters to optimize, which values in the
 Demes-specified model to fit, and impose any bounds on those parameters:
 ```YAML
@@ -176,15 +143,20 @@ parameters:
   upper_bound: 1e-2
 ```
 
-Optimization then can be performed as below:
+Optimization then can be performed using the `moments.Demes.Inference.optimize`
+function:
 ```python
+import moments
+import gzip
+import pickle
+
 # Load the data
 data = moments.Spectrum.from_file("data/data.fs")
 
 # Specify model paths
-g_in = "model.misspec.yaml"
-options = "model.misspec.options.yaml"
-g_out = "model.misspec.out.yaml"
+g_in = "models_and_fits/model.misspec.yaml"
+options = "models_and_fits/model.misspec.options.yaml"
+g_out = "models_and_fits/model.misspec.out.yaml"
 
 # Parameters from simulated data
 u = 1e-8
@@ -194,19 +166,45 @@ U = u * L * num_reps
 
 
 # Run fit
-moments.Demes.Inference.optimize(
+ret = moments.Demes.Inference.optimize(
     g_in,
     options,
     data,
-    verbose=1,
     method="fmin",
     perturb=1,
     uL=U,
     output=g_out,
     overwrite=True
 )
+
+# ret stores parameter names, optimal values, and the log-likelihood
+params, vals, ll = ret
+print("Param\tBest fit value")
+for p, v in zip(params, vals):
+    print(f"{p}\t{v}")
+```
+This prints
+```
+Param	Best fit value
+Ne	15324.101946214449
+NA	28453.36696520237
+NB	5922.663260471864
+T	181743.50274735267
+m	6.47082934291272e-05
 ```
 
-The output optimized demes model is stored in [model.misspec.out.yaml](model.misspec.out.yaml).
-Visualizing this fit:
-![model.misspec.fit.png](model.misspec.fit.png)
+The output optimized demes model is stored in
+[model.misspec.out.yaml](models_and_fits/model.misspec.out.yaml).
+
+We similarly perform inference for a model that allows for exponential size
+changes in `popB` while assuming constant size changes in the ancestor, and
+for the simulated model in which we reinfer parameters assuming no model
+misspecification. The scripts to run these optimizations are found in this
+directory.
+
+To compare model fits between misspecified and correctly specified models,
+we use `demesdraw` to plot output models. The plotting script is also found
+in this directory.
+![Fit models](model.fits.png)
+
+### Confidence intervals

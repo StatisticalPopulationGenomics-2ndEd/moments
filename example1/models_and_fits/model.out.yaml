@@ -1,0 +1,20 @@
+description: split-with-migration model, loosely based on a human history (see example
+  2)
+time_units: years
+generation_time: 29
+demes:
+- name: ancestral
+  epochs:
+  - {end_time: 314150.4656984608, start_size: 14874.795216663028}
+  - {end_time: 74443.28616066407, start_size: 24621.827917505394}
+- name: popA
+  ancestors: [ancestral]
+  epochs:
+  - {end_time: 0, start_size: 30075.052484699856}
+- name: popB
+  ancestors: [ancestral]
+  epochs:
+  - {end_time: 0, start_size: 1212.2935289265574, end_size: 14014.497372392127}
+migrations:
+- demes: [popA, popB]
+  rate: 4.924982898663882e-05

@@ -1,0 +1,18 @@
+description: split-with-migration model, with constant sizes and symmetric migration
+time_units: years
+generation_time: 29
+demes:
+- name: ancestral
+  epochs:
+  - {end_time: 181743.50274735267, start_size: 15324.101946214449}
+- name: popA
+  ancestors: [ancestral]
+  epochs:
+  - {end_time: 0, start_size: 28453.36696520237}
+- name: popB
+  ancestors: [ancestral]
+  epochs:
+  - {end_time: 0, start_size: 5922.663260471864}
+migrations:
+- demes: [popA, popB]
+  rate: 6.47082934291272e-05
