@@ -8,16 +8,24 @@
 \usepackage{color}
 
 % need to have the pythonhighlight.sty in directory
-\usepackage{pythonhighlight}
+%\usepackage{pythonhighlight}
+
+% use minted for python and YAML code
+\usepackage{minted}
 
 % local definitions
 \newcommand{\aprcomment}[1]{{\textcolor{blue}{APR: #1}}}
-
+\usepackage{xspace}
 \newcommand{\moments}{\texttt{moments}\xspace}
+\newcommand{\demes}{\texttt{demes}\xspace}
+\newcommand{\msprime}{\texttt{msprime}\xspace}
+\newcommand{\momi}{\texttt{momi}\xspace}
+\newcommand{\fwdpy}{\texttt{fwdpy11}\xspace}
+\newcommand{\tskit}{\texttt{tskit}\xspace}
 
 \begin{document}
 
-\title{Demographic inference using the SFS with Moments and Demes}
+\title{Demographic inference using the SFS with \moments and \demes}
 \author[1]{Nick Collier}
 %\author[2]{Simon Gravel(?)}
 \author[1,*]{Aaron P. Ragsdale}
@@ -30,107 +38,181 @@
     Placeholder
 \end{abstract}
 
-\section{Introduction}
+\section*{Introduction}
 
-The genetic composition within a sample of individuals is shaped by their
-genome biology and evolutionary history. Variation resulting from this history
-is fully described by the ancestral relationships among samples at each locus
-in the genome and how they change along a chromosome due to recombination (that
-is, information stored in the Ancestral Recombination Graph [cites]). However,
-the ARG can be large and unwieldy, and methods for reconstructing history
-directly from the ARG, while showing promise [cite], are in their infancy and
-so far limited in application and scalability [cite]. Instead, evolutionary
-inference using informative summaries provides a tractable and powerful
-alternative for learning parameters of population history, natural selection and
-genome biology.
+The genetic composition of a sample of individuals is shaped by their genome
+biology and evolutionary history. Variation resulting from this history can be
+fully represented by the ancestral relationships among samples at each locus in
+the genome and how those gene-genealogical relationships change along a
+chromosome due to recombination (that is, information stored in the Ancestral
+Recombination Graph \citep{nielsen2025inference}). However, the ARG can be
+large and unwieldy, and methods for reconstructing history directly from the
+ARG, while showing promise \citep[e.g.,][]{yc2022evaluation, fan2023likelihood,
+brandt2024promise}, are in their infancy and so far limited in application and
+scalability. Instead, evolutionary inference using informative summaries of
+genetic variation remains a tractable and powerful alternative for learning
+parameters of population history, natural selection and genome biology.
 
 One such summary that has seen wide use is the site frequency spectrum (SFS),
 which stores the counts (observed or expected) of alleles carried by a given
 number of genomes in a set of samples. Like any summary of the data, the SFS
-discards information relative to the ARG -- in this case, loci are treated
-independently so that haplotypic information is lost. Nonetheless, a great deal
-can be learned from the 
+discards some information stored in the ARG -- in this case, loci are treated
+independently so that haplotypic information is lost. Even so, the relative
+densities of allele frequencies and the overall scale of the SFS are both
+sensitive to demographic and non-demographic processes.
 
-What moments is, what type of data it uses, general framework for inference
+This chapter focuses on multi-population demographic inference from the SFS
+using \moments \citep{jouganous2017inferring}.  Past population processes,
+including changes in population size, splits, gene flow and population
+structure, impact the SFS in predictable ways. A population size expansion (or
+contraction) leads to a relative excess (or deficit) of low-frequency variants,
+for example, and commonly used statistics measuring population divergence, such
+as $F_{ST}$, are themselves summaries of the SFS.  Thus, the development of
+methods to learn demographic history from the SFS came soon after the
+publication of whole-genome sequencing from multiple individuals
+\citep{marth2004allele, williamson2005simultaneous}. More recent methodological
+advances allow for increased sample sizes and numbers of populations, providing
+a rich ecosystem of software for SFS-based demographic inference
+\citep{gutenkunst2009inferring, excoffier2011fastsimcoal,
+gravel2011demographic, jouganous2017inferring, ragsdale2018genomic,
+kamm2020efficiently, dilber2024faster}. We return to this in the final section:
+Considerations and Caveats.
+
+Other evolutionary mechanisms are known to affect allele frequency dynamics and
+the SFS. This presents a challenge for demographic inference, as the observed
+SFS may be distorted by non-demographic processes. However, this also presents
+an opportunity to learn about different evolutionary processes, if demographic
+history can be controlled for. The SFS has been used to infer the distribution
+of fitness effects of new mutations, primarily for nonsynonymous variation in
+coding regions \citep[e.g.,][]{eyre2006distribution, boyko2008assessing,
+kim2017inference}; to scan for historical selective sweeps
+\citep[e.g.,][]{kim2002detecting, nielsen2005genomic}; and to understand how
+selection on quantitative traits impacts the genetic architecture underlying
+those traits \citep[eg.,][]{patel2024conditional, ragsdale2024archaic}. The SFS
+has also been used to infer relative mutation rates and how they have changed
+over time \citep{dewitt2021nonparametric}. Each of these analyses typically
+requires partitioning the data in some way -- by functional annotation,
+mutation context, local recombination rate, etc -- so that comparisons can be
+made across SFS from different classes of mutations.
+
+\subsection*{Interfacing \moments with \demes}
+
+Specifying demographic models requires defining populations (or ``demes'') and
+their relationships via splits and gene flow. \demes provides a standardized
+and accessible format for defining demographic models \citep{gower2022demes},
+and has been adopted by widely used software for population genetics simulation
+and inference (including \msprime \citep{baumdicker2022efficient}, \momi
+\citep{dilber2024faster}, \fwdpy \citep{thornton2019polygenic}, \texttt{GADMA}
+\citep{noskova2023gadma2}). \demes encourages interoperability and reuse of
+code across software, and ease of model implementation and reduction of errors.
+
+Demographic models are specified in YAML format (see \citet{gower2022demes} and
+the associated documentation). The two-population split-with-migration model
+depicted in Figure~\ref{fig:im}A is specified as below:
+\begin{minted}[gobble=4, frame=single,]{yaml}
+    description: split-with-migration model, loosely based on example 2
+    generation_time: 29
+    time_units: years
+    demes:
+    - name: ancestral
+      epochs:
+      - {start_size: 15000, end_time: 300000}
+      - {start_size: 25000, end_time: 75000}
+    - name: popA
+      ancestors: [ancestral]
+      epochs:
+      - {start_size: 30000}
+    - name: popB
+      ancestors: [ancestral]
+      epochs:
+      - {start_size: 1200, end_size: 14000}
+    migrations:
+    - demes: [popA, popB]
+      rate: 5e-5
+\end{minted}
+
+In \moments, a \demes-specified demographic model can be directly used to
+compute either the SFS or multi-population LD statistics
+\citep{ragsdale2019models, ragsdale2020unbiased}. For the SFS, we simply need
+to load the demographic model using \demes and specify the number of haploid
+samples to draw and from which populations.
+\begin{minted}[gobble=4, frame=single]{python}
+    import demes, moments
+    g = demes.load('model.yaml')
+    samples = {'popA': 60, 'popB': 60}
+    fs = moments.Demes.SFS(g, samples=samples)
+\end{minted}
+Here, we have not specified a mutation rate. The default behavior sets $u=1$,
+so that $\theta = 4N_eu=4N_e$, where $N_e$ is the ancestral population's
+initial size. With a known mutation rate, the SFS will be properly scaled by
+passing the mutation rate as a keyword argument: \texttt{moments.Demes.SFS(g,
+samples=samples, u=u)}. This is equivalent to scaling the output SFS above by
+multiplying by \texttt{u}, as \texttt{u*fs}.
+
+\section*{Examples: inference in \moments using \demes}
+
+Below, we show two examples of multi-population demographic inference using the
+joint SFS. The first example simulates data with known demographic parameters,
+which we try to reinfer using the both the original and misspecified simpler
+models. In the second example, we infer a relatively simple human-Neanderthal
+history using data from two human populations and a high-coverage ancient
+sample from the Neanderthal lineage. For both of these examples, we briefly
+describe data processing and inference setup, highlighting the high-level
+components of the analyses. For detailed information for each example,
+including managing data, specifying models, performing inference, computing
+confidence intervals and visualizing fits, we refer readers to the accompanying
+GitHub repository
+(\url{https://github.com/StatisticalPopulationGenomics-2ndEd/moments}), which
+is maintained with up-to-date versioning.
+
+\begin{itemize}
+    \item to run inference, need to specify parameters to be fit
+    \item the parameters/options file points to values in the demographic model
+        to be fit, along with bounds on those parameters and any constraints
+        among parameters
+    \item this options file is also a YAML -- see snippets of examples below, and
+        full details are given in the above URL
+\end{itemize}
+
+\subsection*{Inferring parameters in a simulated split-with-migration model}
+
+Using the split-with-migration model defined above, we simulated data for 30
+diploid individuals from both populations using \msprime
+\citep{baumdicker2022efficient}. These simulations consided of 500 regions,
+each of length 1 Mb, with per-base recombination and mutation rates of
+$10^{-8}$. The joint SFS was computed using \tskit's
+\texttt{ts.allele\_frequency\_spectrum()} function separately on each replicate
+region and summing across regions to find the total SFS across 500 Mb of data
+(Figure~\ref{fig:im}B--D). 
+
+\begin{figure}[t!]
+    \includegraphics{../example1/fig1.pdf}
+    \caption{Caption placeholder}
+    \label{fig:im}
+\end{figure}
+
+\subsection*{Inferring human-Neanderthal demographic parameters}
+
+\begin{figure}[t!]
+    %\includegraphics{../example2/fig2.pdf}
+    \caption{Caption placeholder}
+    \label{fig:humans}
+\end{figure}
+
+
+\section*{Considerations and caveats}\label{sec:conclusions}
+
 \begin{enumerate}
-    \item The SFS -- how its shape is sensitive to population,
-        selection and genome biological parameters
-    \item Demographic inference from the SFS
-    \item Extensions: inference of selection, mutation rates, etc
-    \item Extensions: Multi-allele and multi-locus models
-\end{enumerate}
-
-\section{Interface with Demes}
-
-\begin{enumerate}
-    \item Manipulating and plotting Demes-specified demographic models
-    \item Computing statistics given a Demes model
-    \item Inferring history on a demes model, including specifying parameters to be fit
-\end{enumerate}
-
-\section{Examples}
-
-Two examples, one using simulated data with known parameters, which we try to
-reinfer. And another with actual data (humans + neanderthal). We briefly
-describe these, highlighting the high-level components of the fits. For
-detailed information for each, including managing data, specifying models,
-performing inference, and visualizing results, we refer readers to the GitHub
-(\url{}), which is maintained with up-to-date versioning.
-
-\subsection{Inferring parameters in a simulated isolation-with-migration model}
-
-A python snippet:
-\begin{python}
-dbg = msprime.DemographyDebugger(
-  population_configurations=population_configurations,
-  migration_matrix=migration_matrix,
-  demographic_events=demographic_events)
-dbg.print_history()
-ts = msprime.simulate(
-  population_configurations=population_configurations,
-  migration_matrix=migration_matrix,
-  demographic_events=demographic_events)
-\end{python}
-or
-\begin{python}
-dbg = demography.debug()
-dbg.print_history()
-ts = msprime.simulate(demography=demography)
-\end{python}
-
-This was in discussion of \citet{kelleher2016efficient}.
-
-\subsection{Inferring human-Neanderthal demographic parameters}
-
-\begin{python}
-def myFunc():
-    pass
-\end{python}
-
-\section{Considerations and caveats}
-
-\begin{enumerate}
-    \item Incluce here general ideas about the strengths and weaknesses of
+    \item Include here general ideas about the strengths and weaknesses of
         various approaches in population genetic inference, including when
         using the SFS.
     \item Challenges in finding local/global optima.
     \item Challenges in exploring parameter space.
+    \item Background selection [Ewing, Johri]
     \item Gene dense vs gene sparse genomic architectures among species.
 \end{enumerate}
 
 \bibliographystyle{plainnat}
 \bibliography{paper}
 
-\clearpage
-
-\appendix
-\renewcommand{\thesection}{A\arabic{section}}
-\renewcommand{\theequation}{A\arabic{equation}}
-\renewcommand{\thefigure}{A\arabic{figure}}
-\renewcommand{\thetable}{A\arabic{table}}
-\setcounter{figure}{0}
-\setcounter{equation}{0}
-\setcounter{table}{0}
-
-%\section{Appendix} \label{appendix}
 \end{document}
