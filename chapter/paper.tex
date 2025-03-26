@@ -165,31 +165,105 @@ GitHub repository
 (\url{https://github.com/StatisticalPopulationGenomics-2ndEd/moments}), which
 is maintained with up-to-date versioning.
 
-\begin{itemize}
-    \item to run inference, need to specify parameters to be fit
-    \item the parameters/options file points to values in the demographic model
-        to be fit, along with bounds on those parameters and any constraints
-        among parameters
-    \item this options file is also a YAML -- see snippets of examples below, and
-        full details are given in the above URL
-\end{itemize}
-
-\subsection*{Inferring parameters in a simulated split-with-migration model}
-
-Using the split-with-migration model defined above, we simulated data for 30
-diploid individuals from both populations using \msprime
-\citep{baumdicker2022efficient}. These simulations consided of 500 regions,
-each of length 1 Mb, with per-base recombination and mutation rates of
-$10^{-8}$. The joint SFS was computed using \tskit's
-\texttt{ts.allele\_frequency\_spectrum()} function separately on each replicate
-region and summing across regions to find the total SFS across 500 Mb of data
-(Figure~\ref{fig:im}B--D). 
-
 \begin{figure}[t!]
     \includegraphics{../example1/fig1.pdf}
     \caption{Caption placeholder}
     \label{fig:im}
 \end{figure}
+
+In order to optimize parameters in a \demes model, we need a way to specify
+which parameters should be fit. For this, we use a separate YAML-formatted file
+to define \texttt{parameters}, each of which points to the value(s) in the
+demographic model and sets lower and upper bounds. This file also specifies any
+relative \texttt{constraints} between pairs of parameters, to ensure the
+optimization routine only explores valid model space. Below, we have included
+a truncated parameters file -- the full example is available on GitHub.
+\begin{minted}[gobble=4, frame=single]{YAML}
+    parameters:
+    - name: T0
+      values:
+      - demes:
+          ancestral:
+            epochs:
+              0: end_time
+      lower_bound: 0
+      upper_bound: 2e5
+    - name: T1
+      values:
+      - demes:
+          ancestral:
+            epochs:
+              1: end_time
+      lower_bound: 0
+      upper_bound: 1e6
+    - name: Ne
+      values:
+      - demes:
+          ancestral:
+            epochs:
+              0: start_size
+      lower_bound: 1e2
+      upper_bound: 1e6
+    ...
+    constraints:
+    - params: [T0, T1]
+      constraint: greater_than
+\end{minted}
+
+Taking the demographic model, parameters file, and observed SFS together, we
+can perform inference using the \texttt{moments.Demes.Inference.optimize(...)}
+function.  The initial parameter guesses are given by the input demographic
+model, which may be perturbed using a keyword argument. Any value in the
+demographic model that is not specified in the parameters file will remain
+unchanged, and is therefore treated as a fixed parameter. Here, we also assume
+we have an estimate for the total mutation rate, $U$.
+\begin{minted}[gobble=4, frame=single]{YAML}
+    import moments 
+
+    data = moments.Spectrum.from_file('data.fs')
+    U = 1e-8 * 5e8  # per-base mutation rate times the total length
+
+    model_file = 'model.yaml'
+    params_file = 'params.yaml'
+    output = 'model.fit.yaml'
+
+    ret = moments.Demes.Inference.optimize(
+        model_file, params_file, data,
+        perturb=1, uL=U, output=output
+    )
+\end{minted}
+
+Confidence intervals may also be computed, once a (locally) optimal model has
+been found.
+
+\subsection*{Inferring parameters in a simulated split-with-migration model}
+
+Using the split-with-migration model defined above (illustrated in
+Figure~\ref{fig:im}A), we simulated data for 30 diploid individuals from both
+populations using \msprime \citep{baumdicker2022efficient}. These simulations
+consided of 500 regions, each of length 1 Mb, with per-base recombination and
+mutation rates of $10^{-8}$. The joint SFS was computed using \tskit's
+\texttt{ts.allele\_frequency\_spectrum()} function separately on each replicate
+region and summing across regions to find the total SFS across 500 Mb of data
+(Figure~\ref{fig:im}B--D).
+
+We fit three demographic models to the simulated data. In addition to
+reinferring the parameters from the simulated model, we fit two simpler models
+to the same data. These had fewer parameters, both omitting the size change
+deeper in time in the ancestral population. This is meant to crudely mimic the
+scenario that we often face, in which the true history is more complicated than
+the parameterized model. It also highlights biases in inferences that can arise
+when features of the true history are not included.
+
+When fitting the two misspecified models that do not allow for size changes in
+the ancestral population, this split time is inferred to be substantially
+deeper in the past than the true split time. This effect, as demonstrated by
+\citet{momigliano2020biases}, is due to the decreased coalescence rate within
+the ancestral population between the time of the expansion and divergence of
+the descendent populations. These two misspecified models
+(Figure~\ref{fig:im}H,I) also provide a worse fit to the data, as seen by the
+lower log-likelihoods and the large residuals between model predictions and
+data (Figure~\ref{fig:im}E-G).
 
 \subsection*{Inferring human-Neanderthal demographic parameters}
 
