@@ -1,0 +1,106 @@
+parameters: 
+- name: N_A 
+  description: Ancestral population size and size of AMH before expansion
+  lower_bound: 100
+  values: 
+    - demes: 
+        A: 
+          epochs: 
+            0: start_size 
+        AMH: 
+          epochs: 
+            0: start_size
+- name: T_NMH
+  description: Time of Neandertal/Modern human split
+  upper_bound: 1e6
+  values: 
+    - demes: 
+        A: 
+          epochs: 
+            0: end_time     
+- name: N_N
+  description: Neandertal population size
+  lower_bound: 100
+  values: 
+    - demes: 
+        N: 
+          epochs: 
+            0: start_size 
+        NI: 
+          epochs: 
+            0: start_size 
+        Vindija: 
+          epochs: 
+            0: start_size       
+- name: p
+  description: Proportion of Neandertal admixture into GBR
+  lower_bound: 1e-5
+  upper_bound: 0.10
+  values: 
+    - pulses: 
+        0:  
+          proportions: 0
+- name: T_EXP
+  description: Time of AMH expansion
+  values: 
+    - demes: 
+        AMH: 
+          epochs: 
+            0: end_time
+- name: N_AMH
+  description: Size of AMH following expansion
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        AMH: 
+          epochs: 
+            1: start_size
+- name: T_OOA
+  description: Split time of GBR and MSL
+  lower_bound: 5e4 ## time of Neandertal admixture pulse
+  values: 
+    - demes: 
+        AMH:  
+          epochs: 
+            1: end_time
+- name: N_MSL
+  description: Size of MSL
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        MSL: 
+          epochs: 
+            0: start_size
+- name: N_OOA
+  description: Start size of GBR
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        GBR: 
+          epochs: 
+            0: start_size
+- name: N_GBR
+  description: Final size of GBR
+  lower_bound: 100
+  upper_bound: 1e6
+  values: 
+    - demes: 
+        GBR: 
+          epochs: 
+            0: end_size
+- name: m
+  description: Rate of symmetric migration between GBR and MSL
+  lower_bound: 1e-8
+  upper_bound: 1e-3
+  values: 
+    - migrations: 
+        0: rate
+constraints:
+- params: [T_NMH, T_EXP]
+  constraint: greater_than
+- params: [T_EXP, T_OOA]
+  constraint: greater_than
+

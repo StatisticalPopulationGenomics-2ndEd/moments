@@ -267,6 +267,21 @@ data (Figure~\ref{fig:im}E-G).
 
 \subsection*{Inferring human-Neanderthal demographic parameters}
 
+We obtained modern human genome sequences from a recent resequencing of the 1000 Genomes Project cohort \citep{byrska2022high}, and a high-coverage sequence of the Vindija Neandertal from \cite{prufer2017high}. 
+From the 1000 Genomes cohort we took 85 MSL (Mende from Sierre Leone) and 91 GBR (British from England and Scotland) sequences as our modern human samples.  
+After filtering out sites that lay outside the 1000 Genomes `strict' mask, were not genotyped in all four existing high-coverage archaic genome sequences, lacked high-confidence ancestral state assignments, or fell within 10 kb of exonic or promoter regions, we were left with approximately 960 Mb of well-characterized and putatively neutrally evolving sequence.
+We estimated the genome-wide SFS using built-in \moments parsing functions.
+Details concerning data processing (including our liftover of the Vindija sequence to a more recent genome build) can be found in the linked GitHub repository. 
+
+The model that we wished to fit is relatively simple but still has many parameters (11 in the example we present), so we constructed it iteratively by first dealing with simpler one- and two-population graphs.
+We began by fitting one-population models with ancestral and recent size changes for MSL and GBR.
+We attributed to GBR a sharp contraction ~60 kya followed by exponential growth to represent the out-of-Africa bottleneck and subsequent rapid expansion.
+Then we stitched these one-population models together and refitted to get a simple two-population out-of-Africa model. 
+Following this, we added a Neandertal branch and fit onlt the Neandertal-modern human divergence time, Neandertal effective size, and the Neandertal-to-GBR admixuture proportion. 
+We also fitted the divergence time between the sampled Vindija Neandertal and the lineage which admixed with modern humans, which we observed to be poorly constrained.
+In a second round of optimization, we fixed the aforesaid divergence time and refit all other parameters to refine the model.
+
+
 \begin{figure}[t!]
     %\includegraphics{../example2/fig2.pdf}
     \caption{Caption placeholder}

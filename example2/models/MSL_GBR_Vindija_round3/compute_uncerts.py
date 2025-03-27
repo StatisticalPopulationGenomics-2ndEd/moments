@@ -6,8 +6,8 @@ import moments
 
 def main():
     # define paths and parameters
-    graph_file = "MSL_GBR_Vindija_round2.misid_fit.yaml"
-    options_file = "options_MSL_GBR_Vindija_round2.yaml"
+    graph_file = "MSL_GBR_Vindija_round3.misid_fit.yaml"
+    options_file = "options_MSL_GBR_Vindija_round3.yaml"
     data_file = "../../spectra/MSL_GBR_Vindija"
     u = 1.5e-8
     L = 960914001
