@@ -1,0 +1,9 @@
+description: 2-epoch GBR model with contraction and exponential expansion
+time_units: years
+generation_time: 29
+demes: 
+- name: GBR
+  epochs: 
+  - {start_size: 20000, end_time: 6e4}
+  - {start_size: 2000, end_size: 50000, end_time: 0}
+

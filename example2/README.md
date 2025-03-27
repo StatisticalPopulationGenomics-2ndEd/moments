@@ -474,15 +474,7 @@ constraints:
   constraint: greater_than
 ```
 
-After optimizing these parameters, we run a second round of optimization using the model inferred in the first round ([MSL_GBR_Vindija_model.misid_fit.yaml](example2/models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.misid_fit.yaml)) and the parameters specified in [options_MSL_GBR_Vindija_round2.yaml](models/MSL_GBR_Vindija_round2/options_MSL_GBR_Vindija_round2.yaml). Our final best-fit model is plotted below.
-
-![Best-fit model](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.tubes.png)
-![Best-fit model fit](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.comp_3d.png)
-
-
-### Computing confidence invervals
-
-We may wish to quantify the uncertainty in our best-fit parameter values. We can do this using the uncertainy estimator implemented in `moments`. However, if we do this using the model inferred above, we will encounter an error. Some of the objects used to estimate uncertainties, like the gradient of the likelihood function, are computed using finite differences. When fit parameters are very near to their lower or upper bounds (like the $T_{NI}$ parameter in [MSL_GBR_Vindija_round2.misid_fit.yaml](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.yaml)), evaluation with finite differences may create invalid graphs by assigning parameters to values outside their bounds. So we fix this parameter to a value supported by the literature (90 kya, see Prüfer et al. 2017) and refit the model, obtaining [MSL_GBR_Vindija_round2.misid_fit.yaml](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.yaml) with the following best-fit parameters;
+After optimizing these parameters, we run a second round of optimization using the model inferred in the first round ([models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.misid_fit.yaml](models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.misid_fit.yaml)) as a base. Parameters are specified in [models/MSL_GBR_Vindija_round3/options_MSL_GBR_Vindija_round3.yaml](models/MSL_GBR_Vindija_round3/options_MSL_GBR_Vindija_round3.yaml). Because the divergence time $T_{NI}$ appears poorly constrained, going to its lower bound as seen in [models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.yaml](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.yaml), we fix this parameter to a value supported by the literature (90 kya, see Prüfer et al. 2017).
 ```python
 graph_file = "models/MSL_GBR_Vindija_round3/MSL_GBR_Vindija_round3.misid_fit.yaml"
 options_file = "models/MSL_GBR_Vindija_round3/options_MSL_GBR_Vindija_round3.yaml"
@@ -527,7 +519,14 @@ m       4.36e-05
 p_misid 0.0223
 ```
 
-Now we can estimate uncertainties by calling the `moments.Demes.Inference.uncerts` function. Here we use the default `FIM` method, which does not use bootstrapped data. As described in example 1, this method underestimates parameter uncertainties. We can then print the estimated 95% confidence intervals about our best-fit parameters. 
+Our final best-fit model is plotted below.
+
+![Best-fit model](models/MSL_GBR_Vindija_round3/MSL_GBR_Vindija_round3.misid_fit.tubes.png)
+![Best-fit model fit](models/MSL_GBR_Vindija_round3/MSL_GBR_Vindija_round3.misid_fit.comp_3d.png)
+
+### Computing confidence invervals
+
+We may wish to quantify the uncertainty in our best-fit parameter values. We can do this using the `moments.Demes.Inference.uncerts` function. Here we use the default `FIM` method, which does not take bootstrapped data. As described in example 1, this method underestimates parameter uncertainties. We can then print the estimated 95% confidence intervals about our best-fit parameters. 
 ```python
 p_misid = fit_params[-1]
 

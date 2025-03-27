@@ -18,6 +18,7 @@
 \usepackage{xspace}
 \newcommand{\moments}{\texttt{moments}\xspace}
 \newcommand{\demes}{\texttt{demes}\xspace}
+\newcommand{\demesdraw}{\texttt{demesdraw}\xspace}
 \newcommand{\msprime}{\texttt{msprime}\xspace}
 \newcommand{\momi}{\texttt{momi}\xspace}
 \newcommand{\fwdpy}{\texttt{fwdpy11}\xspace}
@@ -269,22 +270,32 @@ data (Figure~\ref{fig:im}E-G).
 
 We obtained modern human genome sequences from a recent resequencing of the 1000 Genomes Project cohort \citep{byrska2022high}, and a high-coverage sequence of the Vindija Neandertal from \cite{prufer2017high}. 
 From the 1000 Genomes cohort we took 85 MSL (Mende from Sierre Leone) and 91 GBR (British from England and Scotland) sequences as our modern human samples.  
-After filtering out sites that lay outside the 1000 Genomes `strict' mask, were not genotyped in all four existing high-coverage archaic genome sequences, lacked high-confidence ancestral state assignments, or fell within 10 kb of exonic or promoter regions, we were left with approximately 960 Mb of well-characterized and putatively neutrally evolving sequence.
+After filtering out sites that lay outside the 1000 Genomes `strict' mask, that were not genotyped in all four existing high-coverage archaic genome sequences, lacked high-confidence ancestral state assignments, or fell within 10 kb of exonic or promoter regions, we were left with approximately 960 Mb of well-characterized and putatively neutrally-evolving sequence.
 We estimated the genome-wide SFS using built-in \moments parsing functions.
-Details concerning data processing (including our liftover of the Vindija sequence to a more recent genome build) can be found in the linked GitHub repository. 
+Details concerning data processing (including our liftover of the Vindija sequence to a more recent genome build) can be found in the linked GitHub repository.
 
-The model that we wished to fit is relatively simple but still has many parameters (11 in the example we present), so we constructed it iteratively by first dealing with simpler one- and two-population graphs.
+The model that we wished to fit is relatively simple but still has many parameters (11 in the example we present), so we constructed it in stages by first fitting simpler one- and two-population graphs.
+Throughout, we used $u=1.5\cdot 10^{-8}$ as an estimate of the mutation rate per generation and 29 years as the average generation time.
 We began by fitting one-population models with ancestral and recent size changes for MSL and GBR.
-We attributed to GBR a sharp contraction ~60 kya followed by exponential growth to represent the out-of-Africa bottleneck and subsequent rapid expansion.
-Then we stitched these one-population models together and refitted to get a simple two-population out-of-Africa model. 
-Following this, we added a Neandertal branch and fit onlt the Neandertal-modern human divergence time, Neandertal effective size, and the Neandertal-to-GBR admixuture proportion. 
-We also fitted the divergence time between the sampled Vindija Neandertal and the lineage which admixed with modern humans, which we observed to be poorly constrained.
-In a second round of optimization, we fixed the aforesaid divergence time and refit all other parameters to refine the model.
+For the MSL model, we allowed three epochs with constant effective size in each epoch.
+We attributed to GBR a sharp contraction $\sim$60 kya followed by exponential growth to represent the out-of-Africa bottleneck and subsequent rapid expansion. YAML files representing the models and parameters in this section can be found in the linked GitHub repository.
+
+We next stitched these one-population models together and refitted the resulting graph to get a simple two-population out-of-Africa model, with continuous symmetric migration between MSL and GBR. 
+Following this, we added a Neandertal branch and fit only the Neandertal-modern human divergence time, Neandertal effective size, and the Neandertal-to-GBR admixture proportion. 
+We also fitted the divergence time between the sampled Vindija Neandertal and the lineage which admixed with modern humans, which we observed to be poorly constrained, likely in part due to the very small size of our Vindija sample.
+In a second round of optimization for the three-population model, we fixed the aforesaid divergence time to a value supported by literature (90 kya, \cite{prufer2017high}) and refit all other parameters to refine the model.
+
+After this refitting step, we were left with parameters in good agreement with prior authors, with a Neandertal-modern human divergence time of 547 kya, MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion of 2.7 percent. 
+We observe some large residuals in our best-fit model, suggesting ...
 
 
 \begin{figure}[t!]
-    %\includegraphics{../example2/fig2.pdf}
-    \caption{Caption placeholder}
+    \includegraphics{../example2/fig2.pdf}
+    \caption{
+      A plot of the best-fit model created using \demesdraw is displayed in (A).
+      Marginal SFS fits between the model and empirical data are shown for MSL (B) and GBR (C).
+      Marginal two-way spectra predicted by the model and their residuals against the data are plotted for the three pairs of populations MSL, GBR (D and G), MSL, Vindija (E and H), and GBR, Vindija (F, I).
+    }
     \label{fig:humans}
 \end{figure}
 
