@@ -17,10 +17,37 @@ rule all:
     input:
         "spectra/sfs_genomewide" 
 
+# download ancestral sequences
+rule download_ancestral_seqs:
+    output:
+        archive = "data/homo_sapiens_ancestor_GRCh38.tar.gz"
+    params:
+        link = "https://ftp.ensembl.org/pub/release-113/fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz"
+    shell:
+        """
+        wget {params.link} -P {output.archive}
+        """
+
+# extract ancestral sequences
+rule extract_ancestral_seqs:
+    input: 
+        archive = "data/homo_sapiens_ancestor_GRCh38.tar.gz"
+    output:
+        sequences = expand(
+            "data/homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor_{chrom}.fa",
+            chrom=chroms
+        )
+    params:
+        intermed = "data/homo_sapiens_ancestor_GRCh38.tar"
+    shell:
+        """
+        gzip -d {input.archive}
+        tar -xf {params.intermed}
+        """
 
 ## Build a joint mask
 
-
+# write .bed files containing regions covered in each GVCF file
 rule get_gvcf_coverage:
     input:
         script = "../tools/get_vcf_coverage.py",
@@ -32,18 +59,7 @@ rule get_gvcf_coverage:
         python {input.script} -i {input.vcf_file} -o {output.bed_file}
         """
 
-
-rule download_ancestral_seq:
-    output:
-        fa_file = "homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor_{chrom}.fa"
-    params:
-        link = ""
-    shell:
-        """
-        wget {params.link} -O {output.fa_file}
-        """
-
-
+# wrote .bed files representing sites assigned ancestral states with high confidence
 rule get_ancestral_seq_coverage:
     input:
         script = "../tools/get_fa_coverage.py",
@@ -55,7 +71,7 @@ rule get_ancestral_seq_coverage:
         python {input.script} -f {input.fa_file} -o {output.bed_file}
         """
 
-
+# download the 1000 Genomes strict mask
 rule download_strict_mask:
     output:
         bed_file = "masks/strict/20160622.allChr.mask.bed"
@@ -68,7 +84,7 @@ rule download_strict_mask:
         wget {params.link} -O {output.bed_file}
         """
 
-
+# break up the downloaded strict mask into chromosome-specific files
 rule separate_strict_mask:
     input:
         bed_file = "masks/strict/20160622.allChr.mask.bed"
@@ -81,7 +97,7 @@ rule separate_strict_mask:
         cat {input.bed_file} | awk '$1 == "{params.chromnum}"' > {output.bed_file}
         """
 
-
+# call a custom mask-building script to build a mask of filter-passing sites
 rule combine_masks:
     input: 
         script = "../tools/combine_masks.py",
@@ -104,10 +120,7 @@ rule combine_masks:
             -o {output.bed_file}
         """
 
-
-## extract SNP data from input .vcf files. then mask and annotate it
-
-
+# extract SNP data from input .vcf files. then mask and annotate it
 rule extract_gvcf_variants:
     input:
         vcf_file = vcfs_Archaic + "{sample}/{sample}_liftover_chr{chrom}.vcf.gz"
@@ -122,8 +135,7 @@ rule extract_gvcf_variants:
             -W
         """
 
-
-## subset CHS, GBR, MSL sequences from 1000 genomes data and keep only SNPs.
+# subset CHS, GBR, MSL sequences from 1000 genomes data and keep only SNPs.
 rule extract_1kg_samples:
     input:
         vcf_file = vcfs_1kG + "1kGP_high_coverage_Illumina.chr{chrom}.filtered.SNV_INDEL_SV_phased_panel.vcf.gz",
@@ -142,8 +154,7 @@ rule extract_1kg_samples:
             -W
         """
 
-
-## merge together archaic-variant and subset-1kG .vcf files
+# merge together archaic-variant and subset-1kG .vcf files
 rule merge_vcf_files:
     input:
         vcf_files = ["1kG_subset/1kGP_high_coverage_Illumina.chr{chrom}.filtered.subset_SNV_phased_panel.vcf.gz"] \
@@ -161,7 +172,7 @@ rule merge_vcf_files:
         bgzip {params.intermediate}
         """
 
-
+# index .vcf.gz 
 rule index_merged_vcfs:
     input: 
         vcf_file = "merged_variants/merged_variants_chr{chrom}.vcf.gz"
@@ -172,8 +183,7 @@ rule index_merged_vcfs:
         bcftools index {input.vcf_file}
         """
 
-
-## mask out sites that we do not want to consider from merged .vcfs
+# mask out sites that fail filters from merged .vcfs
 rule mask_vcfs:
     input:
         vcf_file = "merged_variants/merged_variants_chr{chrom}.vcf.gz",
@@ -186,6 +196,7 @@ rule mask_vcfs:
         bcftools view -R {input.bed_file} -o {output.vcf_file} {input.vcf_file}
         """
 
+# index resulting .vcf.gzs
 rule index_masked_vcfs:
     input: 
         vcf_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz"
@@ -196,7 +207,7 @@ rule index_masked_vcfs:
         bcftools index {input.vcf_file}
         """
 
-
+# write files representing ancestral states at polymorphic sites
 rule write_annotation_files:
     input: 
         script = "../tools/get_ancestral_states.py",
@@ -212,7 +223,7 @@ rule write_annotation_files:
             -o {output.tab_file}
         """
 
-
+# bgzip ancestral state files so they can be read by bcftools
 rule bgzip_annotation_files:
     input: 
         tab_file = "annotations/ancestral_state_chr{chrom}.tab"
@@ -225,8 +236,7 @@ rule bgzip_annotation_files:
         tabix -s1 -b2 -e2 {output.tab_file}
         """
 
-
-## annotate ancestral states of sites in masked .vcfs
+# annotate ancestral states of sites in masked .vcfs
 rule annotate_ancestral_state:
     input:
         vcf_file = "masked_variants/masked_variants_chr{chrom}.vcf.gz",
@@ -245,7 +255,7 @@ rule annotate_ancestral_state:
             {input.vcf_file}
         """
 
-
+# parse chromosome-specific SFSs
 rule parse_sfs:
     input:
         script = "../tools/parse_sfs.py",
@@ -261,7 +271,8 @@ rule parse_sfs:
             -o {output.out_file}
         """
 
-
+# add up chromosome-specific SFSs (this also marginalizes out Chagyrskaya, 
+# Denisova, and Altai samples to reduce size)
 rule combine_sfs:
     input:
         script = "../tools/sum_sfs.py",

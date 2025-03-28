@@ -33,6 +33,7 @@ rule all:
 ### download chain file, reference .fasta files ###
 
 
+# write a file mapping chromosome numbers to `names`, e.g. 1 chr1
 rule write_chrom_map:
     output:
         "data/chrom_map.txt"
@@ -41,7 +42,7 @@ rule write_chrom_map:
             for chrom, chrom_name in zip(chroms, chrom_names):
                 fout.write(f"{chrom}\t{chrom_name}\n")
 
-
+# download the reference genome for build hg19
 rule download_hg19_reference:
     output: 
         reference = "data/reference_hg19/hg19_chr{chrom}.fa.gz"
@@ -52,7 +53,7 @@ rule download_hg19_reference:
             -O - | gzip -d > {output.reference}
         """
 
-
+# download the reference genome for build hg38
 rule download_hg38_reference:
     output: 
         reference = "data/reference_hg38/hg38_chr{chrom}.fa.gz"
@@ -63,7 +64,7 @@ rule download_hg38_reference:
             -O - | gzip -d > {output.reference}
         """
 
-
+# download the chain file for lifting sequences from hg19 to hg38
 rule download_chain_file:
     output: 
         chain_file = "data/chain/hg19ToHg38.over.chain.gz"
@@ -74,10 +75,11 @@ rule download_chain_file:
         """
 
 
-### prepare files in bgzipped format and reformat chromosome numbers ###
-# e.g. from `22` to `chr22`. this is for compatability with the chain file and references
+### prepare files and perform the liftover ###
 
 
+# rename chromosomes in .vcf.gz files to allow compatability with the chain 
+# and reference files- e.g. `1` to `chr1`- then re-bgzip them
 rule prepare_bgzipped_files:
     input: 
         vcf_file = input_dir + "{sample}/chr{chrom}_mq25_mapab100.vcf.gz",
@@ -95,7 +97,8 @@ rule prepare_bgzipped_files:
         bgzip {params.intermediate}
         """
 
-
+# do the same as above, but with the input filename pattern used for the 
+# Chagyrskaya sequence
 rule prepare_bgzipped_files_Chagyrskaya:
     input: 
         vcf_file = input_dir + "{sample}/chr{chrom}.noRB.vcf.gz",
@@ -113,10 +116,7 @@ rule prepare_bgzipped_files_Chagyrskaya:
         bgzip {params.intermediate}
         """
 
-
-### prepare .csi index files ###
-
-
+# make .csi index files for the prepared .vcf.gz files
 rule index_input_vcf_files:
     input: 
         vcf_file = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz"
@@ -127,10 +127,7 @@ rule index_input_vcf_files:
         bcftools index {input.vcf_file}
         """
 
-
-### perform liftover and sort output files ###
-
-
+# perform the liftover and sort output files
 rule liftover_vcfs:
     input: 
         input_csi = "data/genomes_hg19/{sample}/{sample}_hg19_chr{chrom}.vcf.gz.csi",
@@ -152,4 +149,3 @@ rule liftover_vcfs:
             --write-reject | \
         bcftools sort -o {output.lifted_vcf} -W 
         """
- 

@@ -280,13 +280,15 @@ We began by fitting one-population models with ancestral and recent size changes
 For the MSL model, we allowed three epochs with constant effective size in each epoch.
 We attributed to GBR a sharp contraction $\sim$60 kya followed by exponential growth to represent the out-of-Africa bottleneck and subsequent rapid expansion. YAML files representing the models and parameters in this section can be found in the linked GitHub repository.
 
-We next stitched these one-population models together and refitted the resulting graph to get a simple two-population out-of-Africa model, with continuous symmetric migration between MSL and GBR. 
-Following this, we added a Neandertal branch and fit only the Neandertal-modern human divergence time, Neandertal effective size, and the Neandertal-to-GBR admixture proportion. 
-We also fitted the divergence time between the sampled Vindija Neandertal and the lineage which admixed with modern humans, which we observed to be poorly constrained, likely in part due to the very small size of our Vindija sample.
-In a second round of optimization for the three-population model, we fixed the aforesaid divergence time to a value supported by literature (90 kya, \cite{prufer2017high}) and refit all other parameters to refine the model.
+We next stitched these one-population models together and refitted the resulting graph to get a simple two-population out-of-Africa model that included continuous symmetric migration between MSL and GBR and an ancestral size expansion. 
+Following this, we added a Neandertal branch and fitted the Neandertal-modern human divergence time, Neandertal effective size, and the Neandertal-to-GBR admixture proportion. 
+We also fitted the divergence time between the sampled Vindija Neandertal and the Neandertal lineage which admixed with modern humans.
+Finding that this parameter tended to converge to its lower bound (imposed by the estimated time of death of the Vindija Neandertal, ~55 kya), we fixed it to a value supported by literature (90 kya, \cite{prufer2017high}) in the second round of optimization.
+Rather than fitting it, we fixed the time of the Neandertal-GBR pulse to 50 kya. Fixing parameters for which good estimates are available in the literature (see e.g. \cite{sumer2025earliest}) is often a reasonable thing to do in the first stages of model optimization, and we expected this one to be especially difficult to fit due to the small pulse proportion and Neandertal sample size.
+In a second round of optimization on the three-population model, we refit all the parameters aside from the two times mentioned above to refine the estimates. 
 
 After this refitting step, we were left with parameters in good agreement with prior authors, with a Neandertal-modern human divergence time of 547 kya, MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion of 2.7 percent. 
-We observe some large residuals in our best-fit model, suggesting ...
+We observe some large residuals in our best-fit model (Figure 2), suggesting ...
 
 
 \begin{figure}[t!]

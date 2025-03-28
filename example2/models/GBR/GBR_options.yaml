@@ -1,23 +1,24 @@
 parameters: 
-- name: N_AMH
+- name: N_A
   description: Ancestral population size
   lower_bound: 100
-  upper_bound: 50000
+  upper_bound: 100000
   values: 
     - demes: 
         GBR: 
           epochs: 
             0: start_size
 - name: T_OOA
-  description: Time of OOA / population bottleneck
-  upper_bound: 1e6
+  description: Time of population contraction
+  upper_bound: 120000
+  lower_bound: 40000
   values: 
     - demes: 
         GBR: 
           epochs: 
             0: end_time
 - name: N_OOA
-  description: Population size during bottleneck
+  description: Instantaneous population size following contraction
   lower_bound: 100
   upper_bound: 10000
   values: 
@@ -25,14 +26,6 @@ parameters:
         GBR: 
           epochs: 
             1: start_size
-- name: T_GBR
-  description: Start time of exponential expansion
-  lower_bound: 1e3
-  values: 
-    - demes: 
-        GBR: 
-          epochs: 
-            1: end_time
 - name: N_GBR
   description: Final population size 
   lower_bound: 100
@@ -41,7 +34,4 @@ parameters:
     - demes: 
         GBR: 
           epochs: 
-            2: end_size
-constraints: 
-- params: [T_OOA, T_GBR]
-  constraint: greater_than
+            1: end_size

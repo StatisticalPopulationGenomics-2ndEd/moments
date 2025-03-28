@@ -1,0 +1,47 @@
+parameters: 
+- name: N_A 
+  description: Ancestral population size
+  lower_bound: 100
+  upper_bound: 50000
+  values: 
+    - demes: 
+        MSL: 
+          epochs: 
+            0: start_size
+- name: T_AMH
+  description: Time of first size change
+  upper_bound: 1000000
+  values: 
+    - demes: 
+        MSL: 
+          epochs: 
+            0: end_time
+- name: N_AMH
+  description: Population size following first size change
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        MSL: 
+          epochs: 
+            1: start_size
+- name: T_MSL
+  description: Time of second size change
+  lower_bound: 1000
+  values: 
+    - demes: 
+        MSL: 
+          epochs: 
+            1: end_time
+- name: N_MSL
+  description: Contemporary population size 
+  lower_bound: 100
+  upper_bound: 100000
+  values: 
+    - demes: 
+        MSL: 
+          epochs: 
+            2: start_size
+constraints: 
+- params: [T_AMH, T_MSL]
+  constraint: greater_than

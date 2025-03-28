@@ -1,6 +1,6 @@
 ## Example 2: Inferring a model from empirical data 
 
-In this section, we use moments and its Demes interface to infer a 3-population model of archaic admixture with empirical data. Our data set consists of samples from two modern human populations sequenced in the 1000 genomes project- the Mende from Sierre Leone (MSL) and British from Great Britain (GBR)- and a single Neandertal individual from Vindija cave in Croatia. We construct a simple model of the out-of-Africa expansion of modern humans and the following admixture with Neandertals.
+In this section, we use `moments` and its `demes` interface to infer a 3-population model with empirical data. Our data set consists of samples from two modern human populations sequenced in the 1000 genomes project- the Mende from Sierre Leone (MSL) and British from Great Britain (GBR)- and a single Neandertal individual from Vindija cave in Croatia. We construct a simple model of the out-of-Africa expansion of modern humans and the following admixture with Neandertals.
 
 ### Estimating the SFS from sequence data
 
@@ -20,7 +20,7 @@ print(sfs.sample_sizes)
 ['MSL', 'GBR', 'Vindija']
 array([170, 182, 2])
 ```
-We can use projection and marginalization along with the `to_file` method to save one, two and three-dimensional versions of the large three-population SFS, so that we don't need to repeat these operations every time we fit a model. 
+We can use projection and marginalization to create compact one, two and three-dimensional versions of the large three-population SFS, so that we don't need to repeat these operations every time we fit a model. These can be saved to a format readable by `moments` using the `to_file` method. 
 ```python
 # marginalize to MSL, project it to 10 diploids and save the result
 sfs_msl = sfs.marginalize([1, 2])
@@ -49,7 +49,7 @@ plt.savefig("comp_1d_MSL_GBR.png")
 
 ![Marginal SFS for MSL and GBR](comp_1d_MSL_GBR.png)
 
-We can also plot a 2d spectrum as a heatmap using `moments.Plotting`:
+We can also plot a 2d spectrum as a heatmap using a function from `moments.Plotting`:
 
 ```python
 moments.Plotting.plot_single_2d_sfs(sfs_projected.marginalize([2]), out="comp_2d_MSL_GBR.png")
@@ -59,11 +59,9 @@ moments.Plotting.plot_single_2d_sfs(sfs_projected.marginalize([2]), out="comp_2d
 
 ### Fitting marginal demographies 
 
-Before fitting the three-population model, it will be useful to estimate parameters for single-population models. This will help us to select reasonable topologies and initial parameter values when approaching more complex multi-population models. Let's begin with the MSL population and fit a model that proposes three epochs with constant effective population sizes. We assume a generation time of 29 years.
-
-The model ([MSL_model.yaml](models/MSL/MSL_model.yaml)):
+Before fitting the three-population model, it is useful to estimate parameters for single-population models. This will help us to select reasonable topologies and initial parameter values when approaching more complex multi-population models. Let's begin with the MSL population and fit a model that proposes three epochs with constant effective population sizes. We assume a generation time of 29 years. The model ([models/MSL/MSL_model.yaml](models/MSL/MSL_model.yaml)) is written as:
 ```YAML
-description: 3-epoch model for the MSL population with piecewise-constant population sizes
+description: 3-epoch model for MSL
 time_units: years
 generation_time: 29
 demes: 
@@ -74,7 +72,7 @@ demes:
   - {start_size: 40000, end_time: 0}
 ```
 
-The parameters ([options_MSL_model.yaml](models/MSL/options_MSL.yaml)):
+We parameterize each effective size and the two epoch transition times ([models/MSL/MSL_options.yaml](models/MSL/MSL_options.yaml)):
 ```YAML
 parameters: 
 - name: N_A 
@@ -87,15 +85,15 @@ parameters:
           epochs: 
             0: start_size
 - name: T_AMH
-  description: Time of first size expansion
-  upper_bound: 1e6
+  description: Time of first size change
+  upper_bound: 1000000
   values: 
     - demes: 
         MSL: 
           epochs: 
             0: end_time
 - name: N_AMH
-  description: Population size following first expansion
+  description: Population size following first size change
   lower_bound: 100
   upper_bound: 100000
   values: 
@@ -104,8 +102,8 @@ parameters:
           epochs: 
             1: start_size
 - name: T_MSL
-  description: Time of second size expansion
-  lower_bound: 1e3
+  description: Time of second size change
+  lower_bound: 1000
   values: 
     - demes: 
         MSL: 
@@ -125,35 +123,39 @@ constraints:
   constraint: greater_than
 ```
 
-Let $u=1.5\cdot10^{-8}$ be our estimate of the per-generation nucleotide mutation rate in humans. Here we will use a Poisson likelihood function rather than a multionomial one, and the object we will fit the model to will be SFS counts rather than frequencies. To do so, the optimization function in `moments.Demes` requires the compound parameter `uL`, so we must also know the length of the sequence from which we estimated the SFS. Here, the number of called sites that passed our filters was $L=960,914,001$. We may choose to fit either the folded or unfolded SFS; when fitting an unfolded SFS, we can incorporate error in the assigment of ancestral nucleotide states into our inference by simaltaneously estimating a `misid` probability.
+Let `u = 1.5e-8` be our estimate of the per-generation nucleotide mutation rate in humans. Here we use a Poisson likelihood function, which requies that we give the compound parameter `uL = u * L` as an argument to the `moments.Demes` optimization function. We must therefore know the length of the sequence from which we estimated the SFS- here, the number of called sites that passed our filters was `L = 960914001`. We may choose to fit either the folded or unfolded SFS; when fitting an unfolded SFS, we can incorporate error in the assigment of ancestral nucleotide states into our inference by simaltaneously estimating an ancestral misidentification probability that takes an initial value `misid_guess`.
 
 ```python
-import moments
-
-# define paths and parameters
+# define model paths
 graph_file = "models/MSL/MSL_model.yaml"
-options_file = "models/MSL/options_MSL.yaml"
+options_file = "models/MSL/MSL_options.yaml"
+
+# define data path and load data
 data_file = "spectra/MSL"
-output = "models/MSL/MSL_model.misid_fit.yaml"
+data = moments.Spectrum.from_file(data_file)
+
+# define output graph filename
+output_file = "models/MSL/MSL_model.misid_fit.yaml"
+
+# define parameters
 u = 1.5e-8
 L = 960914001
 U = u * L
 misid_guess = 0.03
-
-data = moments.Spectrum.from_file(data_file)
 
 # fit using the Powell algorithm
 param_names, fit_params, ll = moments.Demes.Inference.optimize(
     graph_file, 
     options_file, 
     data, 
-    maxiter=10000,
+    uL=U, 
     fit_ancestral_misid=True, 
     misid_guess=misid_guess,
-    uL=U, 
     verbose=50,
-    output=output, 
-    method="powell"
+    output=output_file, 
+    maxiter=10000,
+    method="powell",
+    overwrite=True
 )
 ```
 
@@ -162,8 +164,8 @@ We can print the results like so;
 # print results
 print("Best-fit log-likelihood:", -ll)
 print("Best-fit parameters:")
-for name, val in zip(param_names, fit_params):
-    print(f"{name}\t{val:.3}")
+for name, value in zip(param_names, fit_params):
+    print(f"{name}\t{value:.3}")
 ```
 ```
 Best-fit log-likelihood: -356.03751402092166
@@ -176,30 +178,34 @@ N_MSL   2.1e+04
 p_misid 0.0331
 ```
 
-After fitting the model, we can create plots showing the size history we've inferred and a comparison of the empirical and expected SFS using some built-in `moments` plotting functions. 
+After fitting the model, we can create plots showing the size history we've inferred and a comparison of the empirical and expected SFS using the package `demesdraw` and the built-in `moments.Plotting` plotting functions. 
 
 ```python
-import demes 
-import demesdraw 
+import demes, demesdraw 
 import matplotlib.pyplot as plt
 
-# p_misid was returned as the last element of `fit_params`
+# retrieve `p_misid`, which was returned as the last element of `fit_params`
 p_misid = fit_params[-1]
 
-# load data and obtain model expectations (adjusted by fit misid pr.)
-graph = demes.load(output)
-model = moments.Demes.SFS(graph, samples={"MSL": 20}, u=u, L=L)
+# load the fitted graph
+fit_graph = demes.load(output_file)
+
+# compute model expectations
+model = moments.Demes.SFS(fit_graph, samples={"MSL": 20}, u=u, L=L)
+
+# adjust model expectations to account for ancestral state misidentification
 model = moments.Misc.flip_ancestral_misid(model, p_misid)
 
 # plot size history
-fig, ax = plt.subplot(111)
-demesdraw.size_history(graph, ax=ax)
-plt.savefig("MSL_model.misid_fit.size_history.png")
+ax = plt.subplot(111)
+demesdraw.size_history(fit_graph, ax=ax)
+plt.savefig("models/MSL/MSL_model.misid_fit.size_history.png")
 plt.close()
 
-# plot model expectation against data
+# plot fit to data
 moments.Plotting.plot_1d_comp_Poisson(
-    model, data, residual="linear", out="MSL_model.misid_fit.comp_1d.png"
+    model, data, residual="Anscombe", 
+    out="models/MSL/MSL_model.misid_fit.comp_1d.png"
 )
 ```
 
@@ -209,19 +215,19 @@ moments.Plotting.plot_1d_comp_Poisson(
 
 ### Fitting a joint demography
 
-We fit a one-population model incorporating a sharp contraction followed by exponential growth for the GBR population in the same manner ([models/GBR/GBR_model.misid_fit.yaml](models/GBR/GBR_model.misid_fit.yaml)). Using the parameters inferred in the marginal MSL and GBR models, we now construct a 2-deme model where MSL and GBR diverge ~60,000 years ago ([models/MSL_GBR/MSL_GBR_model.yaml](models/MSL_GBR/MSL_GBR_model.yaml)).
+We also fitted a one-population model for GBR incorporating a sharp contraction followed by exponential growth in the same manner ([models/GBR/GBR_model.misid_fit.yaml](models/GBR/GBR_model.misid_fit.yaml)). Using the parameters inferred in the marginal MSL and GBR models, we now construct a 2-deme model where MSL and GBR diverge ~60,000 years ago ([models/MSL_GBR/MSL_GBR_model.yaml](models/MSL_GBR/MSL_GBR_model.yaml)).
 ```YAML
-description: Simple OOA model with MSL, GBR demes and ancestral expansion.
+description: 3-epoch model for MSL, GBR with ancestral expansion
 time_units: years
 generation_time: 29
 demes:
 - name: A
   epochs: 
-  - {end_time: 450000, start_size: 14000}
+  - {end_time: 200000, start_size: 15000}
 - name: AMH
   ancestors: [A]
   epochs:
-  - {end_time: 60000, start_size: 24000}
+  - {end_time: 60000, start_size: 25000}
 - name: MSL 
   ancestors: [AMH]
   epochs:
@@ -229,13 +235,13 @@ demes:
 - name: GBR
   ancestors: [AMH]
   epochs: 
-  - {end_time: 0, start_size: 2000, end_size: 21000}
+  - {end_time: 0, start_size: 2000, end_size: 20000}
 migrations:
 - demes: [MSL, GBR]
   rate: 1e-5
 ```
 
-We parameterize every feature of the model ([models/MSL_GBR/options_MSL_GBR.yaml](models/MSL_GBR/options_MSL_GBR.yaml)). 
+We parameterize every feature of the model ([models/MSL_GBR/MSL_GBR_options.yaml](models/MSL_GBR/MSL_GBR_options.yaml)). 
 ```YAML
 parameters:
 - name: N_A 
@@ -248,7 +254,7 @@ parameters:
           epochs: 
             0: start_size
 - name: T_EXP
-  decription: Time of ancestral size expansion
+  decription: Time of ancestral expansion
   upper_bound: 1e6
   values: 
     - demes: 
@@ -313,14 +319,24 @@ constraints:
 
 This is fitted using
 ```python
+# define model paths
 graph_file = "models/MSL_GBR/MSL_GBR_model.yaml"
-options_file = "models/MSL_GBR/options_MSL_GBR.yaml"
-data_file = "spectra/MSL_GBR"
-output = "models/MSL_GBR/MSL_GBR_model.misid_fit.yaml"
+options_file = "models/MSL_GBR/MSL_GBR_options.yaml"
 
+# define data path and load data
+data_file = "spectra/MSL_GBR"
 data = moments.Spectrum.from_file(data_file)
 
-# fit using the Powell algorithm
+# define output graph filename
+output_file = "models/MSL_GBR/MSL_GBR_model.misid_fit.yaml"
+
+# define parameters
+u = 1.5e-8
+L = 960914001
+U = u * L
+misid_guess = 0.03
+
+# fit using the fmin algorithm
 param_names, fit_params, ll = moments.Demes.Inference.optimize(
     graph_file, 
     options_file, 
@@ -329,51 +345,54 @@ param_names, fit_params, ll = moments.Demes.Inference.optimize(
     fit_ancestral_misid=True, 
     misid_guess=misid_guess,
     uL=U, 
-    verbose=50,
-    output=output, 
-    method="powell"
+    verbose=1,
+    output=output_file, 
+    method="fmin",
+    overwrite=True
 )
 
 # print results
 print("Best-fit log-likelihood:", -ll)
 print("Best-fit parameters:")
-for name, val in zip(param_names, fit_params):
-    print(f"{name}\t{val:.3}")
+for name, value in zip(param_names, fit_params):
+    print(f"{name}\t{value:.3}")
 ```
 ```
-Best-fit log-likelihood: -6960.3200203990145
+...
+Best-fit log-likelihood: -6960.233060210065
 Best-fit parameters:
 N_A     1.45e+04
-T_EXP   4.36e+05
+T_EXP   4.37e+05
 N_AMH   2.35e+04
 T_OOA   7.25e+04
 N_MSL   2.76e+04
 N_OOA   1.2e+03
 N_GBR   1.41e+04
 m       3.35e-05
-p_misid 0.0308
+p_misid 0.0309
 ```
 
 We are left with some reasonable parameters and the fit to data plotted below;
 ```python
+# retrive misid
 p_misid = fit_params[-1]
-graph = demes.load(output)
 
-model = moments.Demes.SFS(graph, samples={"MSL": 20, "GBR": 20}, u=u, L=L)
+# load output graph
+fit_graph = demes.load(output_file)
+
+# compute model expectations
+model = moments.Demes.SFS(fit_graph, samples={"MSL": 20, "GBR": 20}, u=u, L=L)
 model = moments.Misc.flip_ancestral_misid(model, p_misid)
-data = moments.Spectrum.from_file(data_file)
 
 # plot size history
 ax = plt.subplot(111)
-demesdraw.size_history(graph, ax=ax)
+demesdraw.size_history(fit_graph, ax=ax)
 plt.savefig("models/MSL_GBR/MSL_GBR_model.misid_fit.size_history.png")
 plt.close()
 
-# plot joint fit (2d) for MSL, GBR
+# plot joint fit for MSL, GBR
 moments.Plotting.plot_2d_comp_Poisson(
-    model, 
-    data, 
-    residual="linear", 
+    model, data, residual="linear", 
     out="models/MSL_GBR/MSL_GBR_model.misid_fit.comp_2d.png"
 )
 ```
@@ -383,7 +402,7 @@ moments.Plotting.plot_2d_comp_Poisson(
 
 ### Introducing a third population
 
-Now that we have a relatively well-fitting model for two modern human populations, we incorporate a Neandertal branch and fit the relevant parameters. It is useful to do this in multiple steps- here we first optimize a few new parameters (Neandertal/African modern human divergence time, effective size of Neandertal populations, divergence time of the sampled and introgressing Neandertals and admixture pulse proportion) to obtain a reasonable fit, then run a second round of optimization to further refine all the parameters we considered above. We fix the time of Neandertal admixture to 50 kya (see Sümer et al. 2025) and use a single size parameter $N_N$ for all Neandertal demes, as we may expect these parameters to be poorly constrained given our small Neandertal sample size. The initial graph is [models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.yaml](models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.yaml) 
+Now that we have a relatively well-fitting model describing two modern human populations, we incorporate a Neandertal branch and fit the relevant parameters. It is useful to do this in multiple steps- here we first optimize a few new parameters (Neandertal/modern human divergence time, effective size of Neandertal populations, divergence time of the sampled and introgressing Neandertals, and Neandertal to GBR admixture pulse proportion) to obtain a reasonable fit, then run a second round of optimization to further refine all the parameters we considered in the two-population model as well. We fix the time of Neandertal admixture to 50 kya (see Sümer et al. 2025) and use a single size parameter $N_N$ for all Neandertal demes, as we may expect these parameters to be poorly constrained given our small Neandertal sample size. The initial graph is [models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_model.yaml](models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_model.yaml):
 ```YAML
 description: Model of Vindija Neandertal, MSL and GBR lineages with admixture.
 time_units: years
@@ -427,7 +446,7 @@ pulses:
   time: 50000
 ```
 
-and the parameters are specified in [models/MSL_GBR_Vindija_round1/options_MSL_GBR_Vindija.yaml](models/MSL_GBR_Vindija_round1/options_MSL_GBR_Vindija.yaml):
+and the parameters are specified in [models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_options.yaml](models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_options.yaml):
 ```YAML
 parameters: 
 - name: T_NMH
@@ -474,15 +493,40 @@ constraints:
   constraint: greater_than
 ```
 
-After optimizing these parameters, we run a second round of optimization using the model inferred in the first round ([models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.misid_fit.yaml](models/MSL_GBR_Vindija_round1/MSL_GBR_Vindija_model.misid_fit.yaml)) as a base. Parameters are specified in [models/MSL_GBR_Vindija_round3/options_MSL_GBR_Vindija_round3.yaml](models/MSL_GBR_Vindija_round3/options_MSL_GBR_Vindija_round3.yaml). Because the divergence time $T_{NI}$ appears poorly constrained, going to its lower bound as seen in [models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.yaml](models/MSL_GBR_Vindija_round2/MSL_GBR_Vindija_round2.misid_fit.yaml), we fix this parameter to a value supported by the literature (90 kya, see Prüfer et al. 2017).
+We plot the fitted model using
 ```python
-graph_file = "models/MSL_GBR_Vindija_round3/MSL_GBR_Vindija_round3.misid_fit.yaml"
-options_file = "models/MSL_GBR_Vindija_round3/options_MSL_GBR_Vindija_round3.yaml"
-data_file = "spectra/MSL_GBR_Vindija"
-output = "models/MSL_GBR_Vindija_round3/MSL_GBR_Vindija_round3.misid_fit.yaml"
+# load the model
+fit_graph = demes.load("models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_model.misid_fit.yaml")
 
+# plot tubes
+ax = plt.subplot(111)
+demesdraw.tubes(fit_graph, ax=ax)
+plt.savefig("models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_model.misid_fit.tubes.png")
+plt.close()
+```
+
+![First three-population model](models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_model.misid_fit.tubes.png)
+
+We find the NI/Vindija divergence time `T_NI` to be poorly constrained, so in the second round of optimization we fix it at a value supported by the literature (90 kya, see Prüfer et al. 2017). The free parameters for the second step are specified in [models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_options_step2.yaml](models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_options_step2.yaml)  and their initial values are given by the best fit plotted above [models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.yaml](models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.yaml). We fit the final model using
+```python
+# define model paths
+graph_file = "models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.yaml"
+options_file = "models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_options_step2.yaml"
+
+# define data path and load data
+data_file = "spectra/MSL_GBR_Vindija"
 data = moments.Spectrum.from_file(data_file)
 
+# define output graph filename
+output_file = "models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.misid_fit.yaml"
+
+# define parameters
+u = 1.5e-8
+L = 960914001
+U = u * L
+misid_guess = 0.03
+
+# fit using the Powell algorithm
 param_names, fit_params, ll = moments.Demes.Inference.optimize(
     graph_file, 
     options_file, 
@@ -492,15 +536,16 @@ param_names, fit_params, ll = moments.Demes.Inference.optimize(
     misid_guess=misid_guess,
     uL=U, 
     verbose=1,
-    output=output,
-    method="lbfgsb"
+    output=output_file, 
+    method="powell",
+    overwrite=True
 )
 
 # print results
 print("Best-fit log-likelihood:", -ll)
 print("Best-fit parameters:")
-for name, p in zip(param_names, fit_params):
-    print(f"{name}\t{p:.3}")
+for name, value in zip(param_names, fit_params):
+    print(f"{name}\t{value:.3}")
 ```
 ```
 Best-fit log-likelihood: -24640.177263672063
@@ -519,32 +564,64 @@ m       4.36e-05
 p_misid 0.0223
 ```
 
-Our final best-fit model is plotted below.
+We plot the result using the following:
+```python
+# define p_misid 
+p_misid = 0.0223
 
-![Best-fit model](models/MSL_GBR_Vindija_round3/MSL_GBR_Vindija_round3.misid_fit.tubes.png)
-![Best-fit model fit](models/MSL_GBR_Vindija_round3/MSL_GBR_Vindija_round3.misid_fit.comp_3d.png)
+# load output graph
+fit_graph = demes.load("models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.misid_fit.yaml")
+
+# compute model expectations
+model = moments.Demes.SFS(
+    fit_graph, samples={"MSL": 20, "GBR": 20, "Vindija": 2}, u=u, L=L
+)
+model = moments.Misc.flip_ancestral_misid(model, p_misid)
+
+# plot tubes
+ax = plt.subplot(111)
+demesdraw.tubes(fit_graph, ax=ax)
+plt.savefig("models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.misid_fit.tubes.png")
+plt.close()
+
+# plot 3-way comparison
+moments.Plotting.plot_3d_comp_Poisson(
+    model, data, residual="Anscombe", 
+    out="models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.misid_fit.comp_3d.png"
+)
+```
+
+![Best-fit model](models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.misid_fit.tubes.png)
+![Best-fit model fit](models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.misid_fit.comp_3d.png)
 
 ### Computing confidence invervals
 
 We may wish to quantify the uncertainty in our best-fit parameter values. We can do this using the `moments.Demes.Inference.uncerts` function. Here we use the default `FIM` method, which does not take bootstrapped data. As described in example 1, this method underestimates parameter uncertainties. We can then print the estimated 95% confidence intervals about our best-fit parameters. 
 ```python
-p_misid = fit_params[-1]
+# define p_misid 
+p_misid = 0.0223
 
-std_errs = moments.Demes.Inference.uncerts(
-    output,
+# compute confidence intervals using FIM 
+log_file = "models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.misid_fit.uncerts.txt"
+uncerts = moments.Demes.Inference.uncerts(
+    output_file,
     options_file,
     data,
     uL=U,
     method="FIM",
     fit_ancestral_misid=True,
-    misid_fit=p_misid
+    misid_fit=p_misid,
+    verbose=10,
+    output=log_file,
+    overwrite=True,
+    eps=1e-2
 )
 
-# print results
-print(r"95% confidence intervals:")
+# print confidence intervals
+print("95% confidence intervals:")
 print("param\t2.5%\t97.5%")
-for name, val, err in zip(param_names, fit_params, std_errs):
-    print(f"{name}\t{val - 1.96 * err:.3}\t{val + 1.96 * err:.3}")
+for name, value, err in zip(param_names, fit_params, uncerts):
+    print(f"{name}\t{value - 1.96 * err:.3}\t{value + 1.96 * err:.3}")
 ```
 ```
 95% confidence intervals:
@@ -562,7 +639,59 @@ N_GBR   1.06e+04        1.1e+04
 m       4.31e-05        4.41e-05
 ```
 
-We can see that the `FIM` 95% confidence intervals are very tight. 
+We can see that the `FIM` 95% confidence intervals are very tight. We can repeat the same process with the first-step model by loading its fitted parameters;
+```python
+# define data path and load data
+data_file = "spectra/MSL_GBR_Vindija"
+data = moments.Spectrum.from_file(data_file)
+
+# define graph and options filenames
+graph_file = "models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_model.misid_fit.yaml"
+options_file = "models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_options.yaml"
+
+# define fitted misid
+p_misid = 0.0250059
+
+# compute uncerts
+log_file = "models/MSL_GBR_Vindija_step1/MSL_GBR_Vindija_model.misid_fit.uncerts.txt"
+uncerts = moments.Demes.Inference.uncerts(
+    graph_file,
+    options_file,
+    data,
+    uL=U,
+    method="FIM",
+    fit_ancestral_misid=True,
+    misid_fit=p_misid,
+    verbose=10,
+    output=log_file,
+    overwrite=True,
+    eps=1e-2
+)
+
+# load parameter names and values using moments.Demes functionality
+builder = demes.load(graph_file).asdict()
+options = moments.Demes.Inference._get_params_dict(options_file)
+param_names, fit_params, _, __ = \
+    moments.Demes.Inference._set_up_params_and_bounds(options, builder)
+
+# add p_misid to parameters
+param_names.append("p_misid")
+fit_params = np.append(fit_params, p_misid)
+
+# print confidence intervals
+print("95% confidence intervals:")
+print("param\t2.5%\t97.5%")
+for name, value, err in zip(param_names, fit_params, uncerts):
+    print(f"{name}\t{value - 1.96 * err:.3}\t{value + 1.96 * err:.3}")
+```
+```
+95% confidence intervals:
+param   2.5%    97.5%
+T_NMH   5.66e+05        5.68e+05
+N_N     2.83e+03        2.85e+03
+T_NI    5.38e+04        6.17e+04
+p       0.0219  0.0223
+```
 
 ### References
 

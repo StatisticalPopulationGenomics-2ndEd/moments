@@ -1,22 +1,22 @@
-description: Simple OOA model with MSL, GBR demes and ancestral expansion.
+description: 3-epoch model for MSL, GBR with ancestral expansion
 time_units: years
 generation_time: 29
 demes:
 - name: A
   epochs:
-  - {end_time: 436166.1984650331, start_size: 14502.424743309206}
+  - {end_time: 437057.7199649394, start_size: 14499.22172614954}
 - name: AMH
   ancestors: [A]
   epochs:
-  - {end_time: 72526.00759273666, start_size: 23525.824400305177}
+  - {end_time: 72505.50835923913, start_size: 23529.041201645898}
 - name: MSL
   ancestors: [AMH]
   epochs:
-  - {end_time: 0, start_size: 27591.878990713663}
+  - {end_time: 0, start_size: 27579.323481320032}
 - name: GBR
   ancestors: [AMH]
   epochs:
-  - {end_time: 0, start_size: 1201.9212244444434, end_size: 14129.839474007915}
+  - {end_time: 0, start_size: 1201.8001228082953, end_size: 14122.52179679279}
 migrations:
 - demes: [MSL, GBR]
-  rate: 3.345205234558448e-05
+  rate: 3.346146987747803e-05

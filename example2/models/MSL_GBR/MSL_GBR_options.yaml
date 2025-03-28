@@ -9,7 +9,7 @@ parameters:
           epochs: 
             0: start_size
 - name: T_EXP
-  decription: Time of ancestral size expansion
+  decription: Time of ancestral expansion
   upper_bound: 1e6
   values: 
     - demes: 

@@ -1,5 +1,4 @@
-description: 3-epoch model for the MSL population with piecewise-constant population
-  sizes
+description: 3-epoch model for MSL
 time_units: years
 generation_time: 29
 demes:
