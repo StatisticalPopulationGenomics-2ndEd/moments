@@ -36,7 +36,11 @@
 \maketitle
 
 \begin{abstract}
-    Placeholder
+In this chapter we show how to use \moments, a Python library for computing the
+joint SFS and inferring demographic history, through its \demes interface. 
+Following a discussion of SFS inference, we illustrate the general usage of 
+\moments and sketch two specific examples. We conclude with a discussion of some 
+additional considerations regarding the \moments library.
 \end{abstract}
 
 \section*{Introduction}
@@ -45,7 +49,7 @@ The genetic composition of a sample of individuals is shaped by their genome
 biology and evolutionary history. Variation resulting from this history can be
 fully represented by the ancestral relationships among samples at each locus in
 the genome and how those gene-genealogical relationships change along a
-chromosome due to recombination (that is, information stored in the Ancestral
+chromosome due to recombination (that is, by information stored in the Ancestral
 Recombination Graph \citep{nielsen2025inference}). However, the ARG can be
 large and unwieldy, and methods for reconstructing history directly from the
 ARG, while showing promise \citep[e.g.,][]{yc2022evaluation, fan2023likelihood,
@@ -105,7 +109,7 @@ and has been adopted by widely used software for population genetics simulation
 and inference (including \msprime \citep{baumdicker2022efficient}, \momi
 \citep{dilber2024faster}, \fwdpy \citep{thornton2019polygenic}, \texttt{GADMA}
 \citep{noskova2023gadma2}). \demes encourages interoperability and reuse of
-code across software, and ease of model implementation and reduction of errors.
+code across software, ease of model implementation and reduction of errors.
 
 Demographic models are specified in YAML format (see \citet{gower2022demes} and
 the associated documentation). The two-population split-with-migration model
@@ -154,12 +158,12 @@ multiplying by \texttt{u}, as \texttt{u*fs}.
 
 Below, we show two examples of multi-population demographic inference using the
 joint SFS. The first example simulates data with known demographic parameters,
-which we try to reinfer using the both the original and misspecified simpler
-models. In the second example, we infer a relatively simple human-Neanderthal
+which we try to reinfer using the both the original model and simpler misspecified 
+ones. In the second example, we infer a relatively simple human-Neanderthal
 history using data from two human populations and a high-coverage ancient
 sample from the Neanderthal lineage. For both of these examples, we briefly
-describe data processing and inference setup, highlighting the high-level
-components of the analyses. For detailed information for each example,
+describe data processing and inference setup, emphasizing the high-level
+components of the analyses. For detailed information about each example,
 including managing data, specifying models, performing inference, computing
 confidence intervals and visualizing fits, we refer readers to the accompanying
 GitHub repository
@@ -174,7 +178,7 @@ is maintained with up-to-date versioning.
 
 In order to optimize parameters in a \demes model, we need a way to specify
 which parameters should be fit. For this, we use a separate YAML-formatted file
-to define \texttt{parameters}, each of which points to the value(s) in the
+to define \texttt{parameters}, each of which points to desired value(s) in the
 demographic model and sets lower and upper bounds. This file also specifies any
 relative \texttt{constraints} between pairs of parameters, to ensure the
 optimization routine only explores valid model space. Below, we have included
@@ -218,7 +222,7 @@ model, which may be perturbed using a keyword argument. Any value in the
 demographic model that is not specified in the parameters file will remain
 unchanged, and is therefore treated as a fixed parameter. Here, we also assume
 we have an estimate for the total mutation rate, $U$.
-\begin{minted}[gobble=4, frame=single]{YAML}
+\begin{minted}[gobble=4, frame=single]{python}
     import moments 
 
     data = moments.Spectrum.from_file('data.fs')
@@ -234,8 +238,18 @@ we have an estimate for the total mutation rate, $U$.
     )
 \end{minted}
 
-Confidence intervals may also be computed, once a (locally) optimal model has
-been found.
+Confidence intervals may also be computed using 
+\texttt{moments.Demes.Inference.uncerts(...)}, once a (locally) optimal model 
+has been found. The following will emit a tab-separated file containing
+parameter names, best-fit values and estimated standard errors.
+\begin{minted}[gobble=4, frame=single]{python}
+    log_file = 'log.txt'
+
+    uncerts = moments.Demes.Inference.uncerts(
+      output, params_file, data,
+      uL=U, output=log_file
+    )
+\end{minted}
 
 \subsection*{Inferring parameters in a simulated split-with-migration model}
 
@@ -268,35 +282,68 @@ data (Figure~\ref{fig:im}E-G).
 
 \subsection*{Inferring human-Neanderthal demographic parameters}
 
-We obtained modern human genome sequences from a recent resequencing of the 1000 Genomes Project cohort \citep{byrska2022high}, and a high-coverage sequence of the Vindija Neandertal from \cite{prufer2017high}. 
-From the 1000 Genomes cohort we took 85 MSL (Mende from Sierre Leone) and 91 GBR (British from England and Scotland) sequences as our modern human samples.  
-After filtering out sites that lay outside the 1000 Genomes `strict' mask, that were not genotyped in all four existing high-coverage archaic genome sequences, lacked high-confidence ancestral state assignments, or fell within 10 kb of exonic or promoter regions, we were left with approximately 960 Mb of well-characterized and putatively neutrally-evolving sequence.
+We obtained modern human genome sequences from a recent resequencing of the 
+1000 Genomes Project cohort \citep{byrska2022high}, and used the high-coverage 
+sequence of the Vindija Neandertal from \cite{prufer2017high}. 
+From the 1000 Genomes cohort we took 85 MSL (Mende from Sierre Leone) and 91 
+GBR (British from England and Scotland) sequences as our modern human samples.  
+We filtered out sites that lay outside the 1000 Genomes `strict' mask, 
+were not genotyped in all four existing high-coverage archaic genome sequences, 
+thatlacked high-confidence ancestral state assignments, or fell within 10 kb of 
+exonic or promoter regions and were left with approximately 960 Mb of 
+well-characterized and putatively neutrally-evolving sequence.
 We estimated the genome-wide SFS using built-in \moments parsing functions.
-Details concerning data processing (including our liftover of the Vindija sequence to a more recent genome build) can be found in the linked GitHub repository.
+Details concerning data processing (including our liftover of the Vindija 
+sequence to a more recent genome build) can be found in the linked GitHub 
+repository.
 
-The model that we wished to fit is relatively simple but still has many parameters (11 in the example we present), so we constructed it in stages by first fitting simpler one- and two-population graphs.
-Throughout, we used $u=1.5\cdot 10^{-8}$ as an estimate of the mutation rate per generation and 29 years as the average generation time.
-We began by fitting one-population models with ancestral and recent size changes for MSL and GBR.
-For the MSL model, we allowed three epochs with constant effective size in each epoch.
-We attributed to GBR a sharp contraction $\sim$60 kya followed by exponential growth to represent the out-of-Africa bottleneck and subsequent rapid expansion. YAML files representing the models and parameters in this section can be found in the linked GitHub repository.
+The model that we wished to fit is relatively simple but still has many 
+parameters (11 in the example we present), so we constructed it in stages by 
+first fitting simpler one-- and two--population models.
+Throughout, we used $u=1.5\cdot 10^{-8}$ as an estimate of the mutation rate per 
+generation and 29 years as the average generation time. We began by fitting 
+one-population models with ancestral and recent size changes for MSL and GBR.
+For the MSL model, we allowed three epochs with constant effective size in each 
+epoch. We attributed to GBR a sharp contraction $\sim$60 kya followed by 
+exponential growth to represent the out-of-Africa bottleneck and subsequent 
+rapid expansion. YAML files representing the models and parameters in this 
+section can be found in the linked GitHub repository.
 
-We next stitched these one-population models together and refitted the resulting graph to get a simple two-population out-of-Africa model that included continuous symmetric migration between MSL and GBR and an ancestral size expansion. 
-Following this, we added a Neandertal branch and fitted the Neandertal-modern human divergence time, Neandertal effective size, and the Neandertal-to-GBR admixture proportion. 
-We also fitted the divergence time between the sampled Vindija Neandertal and the Neandertal lineage which admixed with modern humans.
-Finding that this parameter tended to converge to its lower bound (imposed by the estimated time of death of the Vindija Neandertal, ~55 kya), we fixed it to a value supported by literature (90 kya, \cite{prufer2017high}) in the second round of optimization.
-Rather than fitting it, we fixed the time of the Neandertal-GBR pulse to 50 kya. Fixing parameters for which good estimates are available in the literature (see e.g. \cite{sumer2025earliest}) is often a reasonable thing to do in the first stages of model optimization, and we expected this one to be especially difficult to fit due to the small pulse proportion and Neandertal sample size.
-In a second round of optimization on the three-population model, we refit all the parameters aside from the two times mentioned above to refine the estimates. 
+We next stitched these one-population models together and refitted the 
+resulting graph to get a two-population model that included continuous symmetric 
+migration between MSL and GBR and an ancestral size expansion. Following this,
+we added a Neandertal branch and fitted the 
+Neandertal-modern human divergence time, Neandertal effective size, and the 
+Neandertal-to-GBR admixture proportion. We also fitted the divergence time 
+between the sampled Vindija Neandertal lineage and the Neandertal lineage which 
+admixed with modern non-African humans. Finding that this parameter tended to 
+converge to its lower bound (imposed by the estimated time of death of the 
+Vindija Neandertal, ~55 kya), we fixed it to a value supported by literature 
+(90 kya, \cite{prufer2017high}) in a second round of optimization.
+Rather than fitting it, we fixed the time of the Neandertal-GBR pulse to 50 kya.
+Fixing parameters for which good estimates are available in the literature 
+(see e.g. \cite{sumer2025earliest}) may be reasonable in the first stages of 
+model optimization, and we expected this value to be especially difficult to fit 
+due to the small pulse proportion and Neandertal sample size. In the second 
+round of optimization on the three-population model, we refit all parameters 
+aside from the two event times mentioned above to refine the estimates. 
 
-After this refitting step, we were left with parameters in good agreement with prior authors, with a Neandertal-modern human divergence time of 547 kya, MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion of 2.7 percent. 
-We observe some large residuals in our best-fit model (Figure 2), suggesting ...
+After this refitting step, we were left with parameters in good agreement with 
+prior authors, with a Neandertal-modern human divergence time of 547 kya, 
+MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion of 2.7 
+percent. We observe some large residuals in our best-fit model 
+Figure~\ref{fig:humans}G-I), suggesting ...
 
 
 \begin{figure}[t!]
     \includegraphics{../example2/fig2.pdf}
     \caption{
       A plot of the best-fit model created using \demesdraw is displayed in (A).
-      Marginal SFS fits between the model and empirical data are shown for MSL (B) and GBR (C).
-      Marginal two-way spectra predicted by the model and their residuals against the data are plotted for the three pairs of populations MSL, GBR (D and G), MSL, Vindija (E and H), and GBR, Vindija (F, I).
+      Marginal SFS fits between the model and empirical data are shown for MSL 
+      (B) and GBR (C).
+      Marginal two-way spectra predicted by the model and their residuals 
+      against the data are plotted for the three pairs of populations MSL, GBR 
+      (D and G), MSL, Vindija (E and H), and GBR, Vindija (F, I).
     }
     \label{fig:humans}
 \end{figure}
