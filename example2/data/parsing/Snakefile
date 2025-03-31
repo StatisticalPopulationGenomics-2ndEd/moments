@@ -107,15 +107,14 @@ rule combine_masks:
             sample=ARCHAIC_SAMPLES
         ),
         ancseq_coverage = "masks/ancseq_coverage/ancseq_coverage_chr{chrom}.bed.gz",
-        exons = "masks/exons/exons_chr{chrom}.bed.gz",
-        promoters = "masks/promoters/promoters_chr{chrom}.bed.gz"
+        exons = "masks/exons/exons_chr{chrom}.bed.gz"
     output: 
         bed_file = "combined_mask/combined_mask_chr{chrom}.bed.gz"
     shell:
         """
         python {input.script} \
             --isec {input.strict} {input.gvcf_coverage} {input.ancseq_coverage} \
-            --subtract {input.exons} {input.promoters} \
+            --subtract {input.exons} \
             --flank 10000 \
             -o {output.bed_file}
         """
