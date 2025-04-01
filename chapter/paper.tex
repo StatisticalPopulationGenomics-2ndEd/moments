@@ -171,7 +171,7 @@ multiplying by \texttt{u}, as \texttt{u*fs}.
 
 Below, we show two examples of multi-population demographic inference using the
 joint SFS. The first example simulates data with known demographic parameters,
-which we try to reinfer using the both the original model and simpler
+which we try to reinfer using both the original model and simpler
 misspecified models. In the second example, we infer a relatively simple
 human-Neanderthal history using data from two human populations and a
 high-coverage ancient sample from the Neanderthal lineage. For both of these
@@ -286,7 +286,7 @@ Using the split-with-migration model defined above (illustrated in
 Figure~\ref{fig:im}A), we simulated data for 30 diploid individuals from both
 populations using \msprime \citep{baumdicker2022efficient}. These simulations
 consided of 500 regions, each of length 1 Mb, with per-base recombination and
-mutation rates of $10^{-8}$. The joint SFS was computed using \tskit's
+mutation rates of $10^{-8}$. The joint SFS was computed by using \tskit's
 \texttt{ts.allele\_frequency\_spectrum()} function separately on each replicate
 region and summing across regions to find the total SFS across 500 Mb of data
 (Figure~\ref{fig:im}B--D).
@@ -367,7 +367,7 @@ resulting demographic model to get a two-population model
 that included continuous symmetric 
 migration between MSL and GBR and an ancestral size expansion. Following this,
 we added a Neandertal branch and fitted the 
-Neandertal-modern human divergence time, Neandertal effective size, and the 
+Neandertal-modern human divergence time, the Neandertal effective size, and the 
 Neandertal-to-GBR admixture proportion. We also fitted the divergence time 
 between the sampled Vindija Neandertal lineage and the Neandertal lineage which 
 admixed with modern non-African humans. Finding that this parameter tended to 
@@ -376,9 +376,9 @@ Vindija Neandertal, ~55 kya), we fixed it to a value supported by literature
 \citep[90 kya,][]{prufer2017high} in a second round of optimization.
 Rather than fitting it, we fixed the time of the Neandertal-GBR pulse to 50 kya.
 Fixing parameters for which good estimates are available in the literature 
-\citep[see e.g.,][]{sumer2025earliest} may be reasonable in the first stages of 
-model optimization, and we expected this value to be especially difficult to fit 
-due to the small pulse proportion and Neandertal sample size. In the second 
+\citep[see e.g.,][]{sumer2025earliest} is often reasonable in the first stages 
+of model optimization, and we expected this value to be especially difficult to 
+fit due to the small pulse proportion and Neandertal sample size. In the second 
 round of optimization on the three-population model, we refit all parameters 
 aside from the two event times mentioned above to refine the estimates. 
 
@@ -396,13 +396,13 @@ The site frequency spectrum is just one of many options for inferring
 evolutionary parameters from genetic data. It is straightforward to compute
 from data, and there are many methods for predicting the SFS, making it an
 appealing framework for demographic inference. As shown here in two examples,
-we have incorporated the \demes format for specifying demographic models in
+we have incorporated the \demes format for specifying demographic models into
 \moments to easily compute the SFS and perform demographic inference, including
 computing uncertainties.
 
 \moments is limited in the size of the dataset that it can consider. Sample
 sizes can be large (in the hundreds), especially when considering models with
-one or few populations, but will encounter memory issues when sample sizes are
+one or few populations, but memory issues will develop when sample sizes are
 extreme or as the number of populations grows. We are limited to a maximum of
 five populations existing at any one time, including ancient samples. Other
 SFS-based methods, such as \momi \citep{kamm2020efficiently, dilber2024faster},
@@ -417,7 +417,7 @@ behavior of parameter values, in which they converge to unreasonably small or
 large values (or approach the imposed bounds). Starting with simple
 parameterizations and sequentially adding complexity helps to alleviate this
 issue. The challenge of large model space is more difficult to address, and
-must be addressed through building and testing a wide range of plausible model
+must be handled through building and testing a wide range of plausible model
 topologies. While time-consuming, a broad exploration of model space,
 especially when considering many populations, is crucial for evaluating
 robustness of particular features of inferred history.
@@ -432,9 +432,9 @@ here.  Alternatively, the genome may be partitioned by $B$-value \citep[a
 measure of the local strength of background
 selectionk,][]{mcvicker2009widespread} and regions experiencing low levels of
 background selection may be used \citep[for an example,
-see][]{medina2023demographic}. In some species with gene-dense genomes, such as
+see][]{medina2023demographic}. In some species with gene-dense genomes, like
 \emph{Drosophila} species, this may be infeasible, and interspersed putatively
-neutral variation must be used, such synonymous variation or short introns,
+neutral variation must be used, such as synonymous variation or short introns,
 which will still experience background selection. The appropriate strategy will
 depend on the genome architecture of the species and genomic resources
 available.
