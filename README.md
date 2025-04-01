@@ -4,10 +4,10 @@ Demographic inference using Moments
 ## `chapter`
 Contains the LaTeX files to compile the document.
 
-## `scripts`
+## `example1`
 Contains python scripts for data parsing, simulation and inference.
 
-## `data`
+## `example2`
 
 ## Dependencies
 

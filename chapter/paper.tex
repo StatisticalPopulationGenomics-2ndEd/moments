@@ -6,6 +6,7 @@
 \usepackage{authblk}
 \usepackage{graphicx}
 \usepackage{color}
+\usepackage{setspace}
 
 % need to have the pythonhighlight.sty in directory
 %\usepackage{pythonhighlight}
@@ -35,12 +36,21 @@
 \affil[*]{apragsdale@wisc.edu}
 \maketitle
 
+%\onehalfspacing
+
 \begin{abstract}
-In this chapter we show how to use \moments, a Python library for computing the
-joint SFS and inferring demographic history, through its \demes interface. 
-Following a discussion of SFS inference, we illustrate the general usage of 
-\moments and sketch two specific examples. We conclude with a discussion of some 
-additional considerations regarding the \moments library.
+
+    The site frequency spectrum (SFS) describes the distribution of allele
+    frequencies in one or more populations and sees wide use in evolutionary
+    inference. Here we show how to use \moments, a Python library for working
+    with the SFS and other measures of genetic diversity, and \demes, a
+    standard format for parameterizing population models, to infer demographic
+    history. Following an introduction to SFS inference, we illustrate the
+    general usage of \moments and its \demes interface, and then show two
+    specific examples, using both simulated and human genetic data. We conclude
+    with caveats and considerations regarding the \moments library and SFS
+    inference more broadly.
+
 \end{abstract}
 
 \section*{Introduction}
@@ -49,14 +59,15 @@ The genetic composition of a sample of individuals is shaped by their genome
 biology and evolutionary history. Variation resulting from this history can be
 fully represented by the ancestral relationships among samples at each locus in
 the genome and how those gene-genealogical relationships change along a
-chromosome due to recombination (that is, by information stored in the Ancestral
-Recombination Graph \citep{nielsen2025inference}). However, the ARG can be
-large and unwieldy, and methods for reconstructing history directly from the
-ARG, while showing promise \citep[e.g.,][]{yc2022evaluation, fan2023likelihood,
-brandt2024promise}, are in their infancy and so far limited in application and
-scalability. Instead, evolutionary inference using informative summaries of
-genetic variation remains a tractable and powerful alternative for learning
-parameters of population history, natural selection and genome biology.
+chromosome due to recombination (that is, by information stored in the
+Ancestral Recombination Graph \citep{nielsen2025inference}). However, the ARG
+can be large and unwieldy, and methods for reconstructing history directly from
+the ARG, while showing promise \citep[e.g.,][]{yc2022evaluation,
+fan2023likelihood, brandt2024promise}, are in their infancy and so far limited
+in application and scalability. Instead, evolutionary inference using
+informative summaries of genetic variation remains a tractable and powerful
+alternative for learning parameters of population history, natural selection
+and genome biology.
 
 One such summary that has seen wide use is the site frequency spectrum (SFS),
 which stores the counts (observed or expected) of alleles carried by a given
@@ -67,12 +78,12 @@ densities of allele frequencies and the overall scale of the SFS are both
 sensitive to demographic and non-demographic processes.
 
 This chapter focuses on multi-population demographic inference from the SFS
-using \moments \citep{jouganous2017inferring}.  Past population processes,
+using \moments \citep{jouganous2017inferring}. Past population processes,
 including changes in population size, splits, gene flow and population
 structure, impact the SFS in predictable ways. A population size expansion (or
 contraction) leads to a relative excess (or deficit) of low-frequency variants,
 for example, and commonly used statistics measuring population divergence, such
-as $F_{ST}$, are themselves summaries of the SFS.  Thus, the development of
+as $F_{ST}$, are themselves summaries of the SFS. Thus, the development of
 methods to learn demographic history from the SFS came soon after the
 publication of whole-genome sequencing from multiple individuals
 \citep{marth2004allele, williamson2005simultaneous}. More recent methodological
@@ -107,13 +118,15 @@ their relationships via splits and gene flow. \demes provides a standardized
 and accessible format for defining demographic models \citep{gower2022demes},
 and has been adopted by widely used software for population genetics simulation
 and inference (including \msprime \citep{baumdicker2022efficient}, \momi
-\citep{dilber2024faster}, \fwdpy \citep{thornton2019polygenic}, \texttt{GADMA}
-\citep{noskova2023gadma2}). \demes encourages interoperability and reuse of
-code across software, ease of model implementation and reduction of errors.
+\citep{dilber2024faster}, \fwdpy \citep{thornton2019polygenic}, and
+\texttt{GADMA} \citep{noskova2023gadma2}). \demes encourages interoperability
+and reuse of code across software, ease of model implementation and reduction
+of errors.
 
 Demographic models are specified in YAML format (see \citet{gower2022demes} and
-the associated documentation). The two-population split-with-migration model
-depicted in Figure~\ref{fig:im}A is specified as below:
+the associated documentation). To illustrate, the two-population
+split-with-migration model depicted in Figure~\ref{fig:im}A is specified as
+below:
 \begin{minted}[gobble=4, frame=single,]{yaml}
     description: split-with-migration model, loosely based on example 2
     generation_time: 29
@@ -139,8 +152,8 @@ depicted in Figure~\ref{fig:im}A is specified as below:
 In \moments, a \demes-specified demographic model can be directly used to
 compute either the SFS or multi-population LD statistics
 \citep{ragsdale2019models, ragsdale2020unbiased}. For the SFS, we simply need
-to load the demographic model using \demes and specify the number of haploid
-samples to draw and from which populations.
+to load the demographic model using \demes and then specify the number of
+haploid samples to draw and from which populations.
 \begin{minted}[gobble=4, frame=single]{python}
     import demes, moments
     g = demes.load('model.yaml')
@@ -158,31 +171,26 @@ multiplying by \texttt{u}, as \texttt{u*fs}.
 
 Below, we show two examples of multi-population demographic inference using the
 joint SFS. The first example simulates data with known demographic parameters,
-which we try to reinfer using the both the original model and simpler misspecified 
-ones. In the second example, we infer a relatively simple human-Neanderthal
-history using data from two human populations and a high-coverage ancient
-sample from the Neanderthal lineage. For both of these examples, we briefly
-describe data processing and inference setup, emphasizing the high-level
-components of the analyses. For detailed information about each example,
-including managing data, specifying models, performing inference, computing
-confidence intervals and visualizing fits, we refer readers to the accompanying
-GitHub repository
+which we try to reinfer using the both the original model and simpler
+misspecified models. In the second example, we infer a relatively simple
+human-Neanderthal history using data from two human populations and a
+high-coverage ancient sample from the Neanderthal lineage. For both of these
+examples, we briefly describe data processing and inference setup, emphasizing
+the high-level components of the analyses. For detailed information about each
+example, including managing data, specifying models, performing inference,
+computing confidence intervals and visualizing fits, we refer readers to the
+accompanying GitHub repository
 (\url{https://github.com/StatisticalPopulationGenomics-2ndEd/moments}), which
 is maintained with up-to-date versioning.
-
-\begin{figure}[t!]
-    \includegraphics{../example1/fig1.pdf}
-    \caption{Caption placeholder}
-    \label{fig:im}
-\end{figure}
 
 In order to optimize parameters in a \demes model, we need a way to specify
 which parameters should be fit. For this, we use a separate YAML-formatted file
 to define \texttt{parameters}, each of which points to desired value(s) in the
-demographic model and sets lower and upper bounds. This file also specifies any
-relative \texttt{constraints} between pairs of parameters, to ensure the
-optimization routine only explores valid model space. Below, we have included
-a truncated parameters file -- the full example is available on GitHub.
+demographic model and for which lower and upper bounds may be set. This file
+also specifies any relative \texttt{constraints} between pairs of parameters,
+to ensure the optimization routine only explores valid model space. Below, we
+have included a truncated parameters file -- the full example is available on
+GitHub (URL above).
 \begin{minted}[gobble=4, frame=single]{YAML}
     parameters:
     - name: T0
@@ -216,8 +224,8 @@ a truncated parameters file -- the full example is available on GitHub.
 \end{minted}
 
 Taking the demographic model, parameters file, and observed SFS together, we
-can perform inference using the \texttt{moments.Demes.Inference.optimize(...)}
-function.  The initial parameter guesses are given by the input demographic
+can perform inference using the \texttt{moments.Demes.Inference.optimize()}
+function. The initial parameter guesses are given by the input demographic
 model, which may be perturbed using a keyword argument. Any value in the
 demographic model that is not specified in the parameters file will remain
 unchanged, and is therefore treated as a fixed parameter. Here, we also assume
@@ -238,20 +246,41 @@ we have an estimate for the total mutation rate, $U$.
     )
 \end{minted}
 
-Confidence intervals may also be computed using 
-\texttt{moments.Demes.Inference.uncerts(...)}, once a (locally) optimal model 
-has been found. The following will emit a tab-separated file containing
-parameter names, best-fit values and estimated standard errors.
+Confidence intervals may also be computed using
+\texttt{moments.Demes.Inference.uncerts()}, once a (locally) optimal model has
+been found. The following will emit a tab-separated file containing parameter
+names, best-fit values and estimated standard errors.
 \begin{minted}[gobble=4, frame=single]{python}
     log_file = 'log.txt'
 
     uncerts = moments.Demes.Inference.uncerts(
-      output, params_file, data,
-      uL=U, output=log_file
+        output, params_file, data,
+        uL=U, output=log_file
     )
 \end{minted}
+Uncertainties may be computed using either the Fisher Information Matrix, which
+tends to underestimate confidence intervals due to nonindependence of linked
+sites, or using the Godambe Information Matrix, which uses a set of
+bootstrapped datasets to correct for this nonindependence in the data
+\citep{coffman2016computationally}. Example 1 in the associated GitHub
+repository demonstrates this using a simulated dataset.
 
-\subsection*{Inferring parameters in a simulated split-with-migration model}
+\subsection*{Example 1: Inferring parameters in a simulated split-with-migration model}
+
+\begin{figure}[t!]
+    \includegraphics{../example1/fig1.pdf}
+    \caption{
+        Inference using simulated data. (A) The true demographic model,
+        including an expansion in the ancestral population and symmetric
+        migration between the descendent populations. (B--D) The simulated
+        data, showing both marginal and the joint SFS. (E--G) Residuals
+        between the data SFS (in D) and the predicted SFS from the inferred
+        demographic models in (H--J), resp.  The two misspecified models (H and
+        I) provide worse fits to the data and both overestimate the split time
+        due to disallowing any size change in the ancestral population.
+    }
+    \label{fig:im}
+\end{figure}
 
 Using the split-with-migration model defined above (illustrated in
 Figure~\ref{fig:im}A), we simulated data for 30 diploid individuals from both
@@ -273,14 +302,20 @@ when features of the true history are not included.
 When fitting the two misspecified models that do not allow for size changes in
 the ancestral population, this split time is inferred to be substantially
 deeper in the past than the true split time. This effect, as demonstrated by
-\citet{momigliano2020biases}, is due to the decreased coalescence rate within
+\citet{momigliano2021biases}, is due to the decreased coalescence rate within
 the ancestral population between the time of the expansion and divergence of
 the descendent populations. These two misspecified models
 (Figure~\ref{fig:im}H,I) also provide a worse fit to the data, as seen by the
 lower log-likelihoods and the large residuals between model predictions and
 data (Figure~\ref{fig:im}E-G).
 
-\subsection*{Inferring human-Neanderthal demographic parameters}
+\subsection*{Example 2: Inferring human-Neanderthal demographic parameters}
+
+This example uses publicly available data to infer a demographic model for two
+human groups (a northern European and western African population) and a
+Neanderthal individual. As shown below, even with just a single sample from the
+Neanderthal lineage, we are able to recover key parameters such as the
+human-Neanderthal divergence and introgression proportion.
 
 We obtained modern human genome sequences from a recent resequencing of the 
 1000 Genomes Project cohort \citep{byrska2022high}, and used the high-coverage 
@@ -288,20 +323,38 @@ sequence of the Vindija Neandertal from \cite{prufer2017high}.
 From the 1000 Genomes cohort we took 85 MSL (Mende from Sierre Leone) and 91 
 GBR (British from England and Scotland) sequences as our modern human samples.  
 We filtered out sites that lay outside the 1000 Genomes `strict' mask, 
-were not genotyped in all four existing high-coverage archaic genome sequences, 
-thatlacked high-confidence ancestral state assignments, or fell within 10 kb of 
-exonic or promoter regions and were left with approximately 960 Mb of 
+were not genotyped in the high-coverage archaic genome sequences, 
+that lacked high-confidence ancestral state assignments, or fell within 10 kb of 
+exonic or promoter regions. This left us with approximately 960 Mb of 
 well-characterized and putatively neutrally-evolving sequence.
 We estimated the genome-wide SFS using built-in \moments parsing functions.
 Details concerning data processing (including our liftover of the Vindija 
 sequence to a more recent genome build) can be found in the linked GitHub 
 repository.
 
+\begin{figure}[t!]
+    \includegraphics{../example2/fig2.pdf}
+    \caption{
+        Inference using human and Neanderthal data.
+        (A) The best-fit model including the Vindija Neanderthal and two human
+        populations.
+        (B, C) Marginal SFS fits between the model and empirical data are shown
+        for MSL and GBR.
+        (D--I) Marginal two-way spectra predicted by the model and their residuals 
+        against the data are plotted for the three pairs of populations MSL, GBR 
+        (D and G), MSL, Vindija (E and H), and GBR, Vindija (F, I).
+    }
+    \label{fig:humans}
+\end{figure}
+
 The model that we wished to fit is relatively simple but still has many 
 parameters (11 in the example we present), so we constructed it in stages by 
 first fitting simpler one-- and two--population models.
-Throughout, we used $u=1.5\cdot 10^{-8}$ as an estimate of the mutation rate per 
-generation and 29 years as the average generation time. We began by fitting 
+Throughout, we used $u=1.5\times 10^{-8}$ as an estimate of the mutation rate per 
+generation and 29 years as the average generation time. When the goal is to infer
+a complex demographic history involving multiple populations, we typically start
+simple, with subsets of the full data, and sequentially add complexity.
+Here, we began by fitting 
 one-population models with ancestral and recent size changes for MSL and GBR.
 For the MSL model, we allowed three epochs with constant effective size in each 
 epoch. We attributed to GBR a sharp contraction $\sim$60 kya followed by 
@@ -310,7 +363,8 @@ rapid expansion. YAML files representing the models and parameters in this
 section can be found in the linked GitHub repository.
 
 We next stitched these one-population models together and refitted the 
-resulting graph to get a two-population model that included continuous symmetric 
+resulting demographic model to get a two-population model 
+that included continuous symmetric 
 migration between MSL and GBR and an ancestral size expansion. Following this,
 we added a Neandertal branch and fitted the 
 Neandertal-modern human divergence time, Neandertal effective size, and the 
@@ -319,10 +373,10 @@ between the sampled Vindija Neandertal lineage and the Neandertal lineage which
 admixed with modern non-African humans. Finding that this parameter tended to 
 converge to its lower bound (imposed by the estimated time of death of the 
 Vindija Neandertal, ~55 kya), we fixed it to a value supported by literature 
-(90 kya, \cite{prufer2017high}) in a second round of optimization.
+\citep[90 kya,][]{prufer2017high} in a second round of optimization.
 Rather than fitting it, we fixed the time of the Neandertal-GBR pulse to 50 kya.
 Fixing parameters for which good estimates are available in the literature 
-(see e.g. \cite{sumer2025earliest}) may be reasonable in the first stages of 
+\citep[see e.g.,][]{sumer2025earliest} may be reasonable in the first stages of 
 model optimization, and we expected this value to be especially difficult to fit 
 due to the small pulse proportion and Neandertal sample size. In the second 
 round of optimization on the three-population model, we refit all parameters 
@@ -331,35 +385,66 @@ aside from the two event times mentioned above to refine the estimates.
 After this refitting step, we were left with parameters in good agreement with 
 prior authors, with a Neandertal-modern human divergence time of 547 kya, 
 MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion of 2.7 
-percent. We observe some large residuals in our best-fit model 
-Figure~\ref{fig:humans}G-I), suggesting ...
-
-
-\begin{figure}[t!]
-    \includegraphics{../example2/fig2.pdf}
-    \caption{
-      A plot of the best-fit model created using \demesdraw is displayed in (A).
-      Marginal SFS fits between the model and empirical data are shown for MSL 
-      (B) and GBR (C).
-      Marginal two-way spectra predicted by the model and their residuals 
-      against the data are plotted for the three pairs of populations MSL, GBR 
-      (D and G), MSL, Vindija (E and H), and GBR, Vindija (F, I).
-    }
-    \label{fig:humans}
-\end{figure}
+percent. We observe some large, systematic residuals in our best-fit model 
+(Figure~\ref{fig:humans}G-I), suggesting model misspecification that could be
+improved through further exploration of model space.
 
 
 \section*{Considerations and caveats}\label{sec:conclusions}
 
-\begin{enumerate}
-    \item Include here general ideas about the strengths and weaknesses of
-        various approaches in population genetic inference, including when
-        using the SFS.
-    \item Challenges in finding local/global optima.
-    \item Challenges in exploring parameter space.
-    \item Background selection [Ewing, Johri]
-    \item Gene dense vs gene sparse genomic architectures among species.
-\end{enumerate}
+The site frequency spectrum is just one of many options for inferring
+evolutionary parameters from genetic data. It is straightforward to compute
+from data, and there are many methods for predicting the SFS, making it an
+appealing framework for demographic inference. As shown here in two examples,
+we have incorporated the \demes format for specifying demographic models in
+\moments to easily compute the SFS and perform demographic inference, including
+computing uncertainties.
+
+\moments is limited in the size of the dataset that it can consider. Sample
+sizes can be large (in the hundreds), especially when considering models with
+one or few populations, but will encounter memory issues when sample sizes are
+extreme or as the number of populations grows. We are limited to a maximum of
+five populations existing at any one time, including ancient samples. Other
+SFS-based methods, such as \momi \citep{kamm2020efficiently, dilber2024faster},
+can include additional populations, typically with smaller sample sizes.
+
+When inferring models with multiple populations, especially four or more, both
+the numbers of parameters and the space of plausible model topologies can grow
+rapidly. It can therefore become challenging for the optimization routines to
+find optima in parameter space, and overparameterization can become a problem.
+One hint that models are overparameterized (or models misspecified) is runaway
+behavior of parameter values, in which they converge to unreasonably small or
+large values (or approach the imposed bounds). Starting with simple
+parameterizations and sequentially adding complexity helps to alleviate this
+issue. The challenge of large model space is more difficult to address, and
+must be addressed through building and testing a wide range of plausible model
+topologies. While time-consuming, a broad exploration of model space,
+especially when considering many populations, is crucial for evaluating
+robustness of particular features of inferred history.
+
+Finally, natural selection distorts allele frequencies not only at sites
+directly under selection, but also in linked regions of the genome through
+background selection. This can have a sizeable impact on the SFS and lead to
+biases in demographic inference \citep{ewing2016consequences, johri2021impact}.
+In gene-sparse species, such as primates, considering data from regions away
+from functionally constrained elements is feasible, as we did in example 2
+here.  Alternatively, the genome may be partitioned by $B$-value \citep[a
+measure of the local strength of background
+selectionk,][]{mcvicker2009widespread} and regions experiencing low levels of
+background selection may be used \citep[for an example,
+see][]{medina2023demographic}. In some species with gene-dense genomes, such as
+\emph{Drosophila} species, this may be infeasible, and interspersed putatively
+neutral variation must be used, such synonymous variation or short introns,
+which will still experience background selection. The appropriate strategy will
+depend on the genome architecture of the species and genomic resources
+available.
+
+
+\section*{Online resources} \moments is available through \texttt{pypi} as
+\texttt{moments-popgen}, and at \url{https://github.com/MomentsLD/moments} with
+documentation at \url{https://momentsld.github.io/moments/}. The detailed
+online examples accompanying this chapter can be found at
+\url{https://github.com/StatisticalPopulationGenomics-2ndEd/moments/}.
 
 \bibliographystyle{plainnat}
 \bibliography{paper}
