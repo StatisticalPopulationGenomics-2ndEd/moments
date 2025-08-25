@@ -11,7 +11,7 @@ graph_file = "models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_model_step2.yaml"
 options_file = "models/MSL_GBR_Vindija_step2/MSL_GBR_Vindija_options_step2.yaml"
 
 # define data path and load data
-data_file = "spectra/MSL_GBR_Vindija"
+data_file = "spectra/MSL_GBR_Vindija.fs"
 data = moments.Spectrum.from_file(data_file)
 
 # define output graph filename

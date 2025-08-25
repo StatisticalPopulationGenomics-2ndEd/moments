@@ -9,16 +9,16 @@
 
 \usepackage{authblk}
 \title{Demographic inference using the SFS with \moments and \demes}
-\author[1]{Nick Collier}
+\author[1]{Nicholas W. Collier}
 \author[1,*]{Aaron P. Ragsdale}
 \affil[1]{Department of Integrative Biology, University of Wisconsin--Madison}
 \affil[*]{apragsdale@wisc.edu}
-\affil[ ]{ORCID IDs: 0009-0005-0385-9798 (NC), 0000-0003-0715-3432 (APR)}
+\affil[ ]{ORCID IDs: 0009-0005-0385-9798 (NWC), 0000-0003-0715-3432 (APR)}
 
 \usepackage[margin=1in, headheight=15pt, headsep=10pt]{geometry}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
-\lhead{N Collier and AP Ragsdale}
+\lhead{NW Collier and AP Ragsdale}
 \rhead{Demographic inference with \moments and \demes}
 
 % use minted for python and YAML code
@@ -209,8 +209,8 @@ Below, we show two examples of multi-population demographic inference using the
 joint SFS. The first example simulates data with known demographic parameters,
 which we try to reinfer using both the original model and simpler
 misspecified models. In the second example, we infer a relatively simple
-human-Neanderthal history using data from two human populations and a
-high-coverage ancient sample from the Neanderthal lineage. For both of these
+human-Neandertal history using data from two human populations and a
+high-coverage ancient sample from the Neandertal lineage. For both of these
 examples, we briefly describe data processing and inference setup, emphasizing
 the high-level components of the analyses. For detailed information about each
 example, including managing data, specifying models, performing inference,
@@ -342,17 +342,18 @@ the descendent populations. These two misspecified models
 lower log-likelihoods and the large residuals between model predictions and
 data (Figure~\ref{fig:im}E-G).
 
-\subsection*{Example 2: Inferring human-Neanderthal demographic parameters}
+\subsection*{Example 2: Inferring human-Neandertal demographic parameters}
 
 This example uses publicly available data to infer a demographic model for two
-human groups (a northern European and western African population) and a
-Neanderthal individual. As shown below, even with just a single sample from the
-Neanderthal lineage, we are able to recover key parameters such as the
-human-Neanderthal divergence and introgression proportion.
+modern human populations (a northern European and western African population) 
+and a Neandertal individual. As shown below, even with just a single sample 
+from the Neandertal lineage, we are able to recover key parameters such as the
+human-Neandertal divergence time and fraction of ancestry contributed to modern 
+Europeans by Neandertals.
 
 We obtained modern human genome sequences from a recent resequencing of the 
 1000 Genomes Project cohort \cite{byrska2022high}, and used the high-coverage 
-sequence of the Vindija Neandertal from \cite{prufer2017high}. 
+sequence of the Vindija Neandertal genome published by \cite{prufer2017high}. 
 From the 1000 Genomes cohort we took 85 MSL (Mende from Sierre Leone) and 91 
 GBR (British from England and Scotland) sequences as our modern human samples.  
 We filtered out sites that lay outside the 1000 Genomes `strict' mask, 
@@ -367,47 +368,60 @@ repository.
 
 The model that we wished to fit is relatively simple but still has many
 parameters ($11$ in the example we present), so we constructed it in stages by
-first fitting simpler one- and two-population models.  Throughout, we used
-$u=1.5\times 10^{-8}$ as an estimate of the mutation rate per generation and 29
-years as the average generation time. When the goal is to infer a complex
-demographic history involving multiple populations, we typically start simple,
-with subsets of the full data, and sequentially add complexity.  Here, we began
-by fitting one-population models with ancestral and recent size changes for MSL
-and GBR.  For the MSL model, we allowed three epochs with constant effective
-size in each epoch. We attributed to GBR a sharp contraction $\sim$60 kya
-followed by exponential growth to represent the out-of-Africa bottleneck and
-subsequent rapid expansion. YAML files representing the models and parameters
-in this section can be found in the linked GitHub repository.
+first fitting marginal one- and two-population models. When our goal is to infer 
+a complex demographic history involving multiple populations, it is helpful to 
+start simple, with subsets of the full data, and sequentially add complexity.  
+Here, we began by fitting one-population models with ancestral and recent size 
+changes for the MSL and GBR populations.  For the MSL model, we allowed three 
+epochs with constant effective size in each epoch. We attributed to GBR a sharp 
+contraction $\sim$60 kya followed by exponential growth to represent the 
+out-of-Africa bottleneck and subsequent rapid population expansion.  Throughout, 
+we used $u=1.5\times 10^{-8}$ as an estimate of the mutation rate per generation 
+and 29 years as the average generation time. YAML files representing the models 
+and parameters in this section can be found in the linked GitHub repository.
 
-\reviewercomment{maybe it would be helpful to also include the likelihood (or AIC?) of each step to show how it changes with the addition of further parameters, and how it can be used to inform the models design}
-\aprcomment{this suggestion would only make sense for models fit to the same data SFS, but it could be done to compare the fit without vs. with the Neanderthal pulse. Maybe we could demonstrate the likelihood ratio test, if it works? what do you think, Nick?}
-
-We next stitched these one-population models together and refitted the 
-resulting demographic model to get a two-population model 
-that included continuous symmetric 
-migration between MSL and GBR and an ancestral size expansion. Following this,
-we added a Neandertal branch and fitted the 
+We next stitched these one-population models together and refitted the resulting 
+demographic model to get a two-population model that included continuous 
+symmetric migration between MSL and GBR and an ancestral size expansion. 
+Following this, we added a Neandertal branch and fitted the 
 Neandertal-modern human divergence time, the Neandertal effective size, and the 
-Neandertal-to-GBR admixture proportion. We also fitted the divergence time 
-between the sampled Vindija Neandertal lineage and the Neandertal lineage which 
-admixed with modern non-African humans. Finding that this parameter tended to 
-converge to its lower bound (imposed by the estimated time of death of the 
-Vindija Neandertal, ~55 kya), we fixed it to a value supported by literature 
-(90 kya, \cite{prufer2017high}) in a second round of optimization.
-Rather than fitting it, we fixed the time of the Neandertal-GBR pulse to 50 kya.
-Fixing parameters for which good estimates are available in the literature 
-(see, e.g., \cite{sumer2025earliest}) is often reasonable in the first stages of 
-model optimization, and we expected this value to be especially difficult to fit 
-due to the small pulse proportion and Neandertal sample size. In the second 
-round of optimization on the three-population model, we refit all parameters 
-aside from the two event times mentioned above to refine the estimates. 
+Neandertal-GBR pulse proportion, leaving other parameters fixed. We also 
+fitted the divergence time between the sampled Vindija Neandertal lineage and 
+the Neandertal lineage which admixed with modern non-African humans. Finding 
+that this parameter tended to converge to its lower bound (imposed by the 
+estimated time of death of the Vindija Neandertal, ~55 kya), we fixed it to a 
+value supported by literature (90 kya, \cite{prufer2017high}) in a second round 
+of optimization. Rather than fitting it, we fixed the time of the Neandertal-GBR 
+pulse to 50 kya. Fixing parameters for which good estimates are available in the 
+literature  (see, e.g., \cite{sumer2025earliest}) is often reasonable in the 
+first stages of model optimization, and we expected this value to be especially 
+poorly constrained due to the small pulse proportion and Neandertal sample size. 
+In the second round of optimization on the three-population model, we refit all 
+parameters aside from the two event times mentioned above to refine the 
+estimates. 
 
 After this refitting step, we were left with parameters in good agreement with 
-prior authors, with a Neandertal-modern human divergence time of 547 kya, 
-MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion of 2.7 
-percent. We observe some large, systematic residuals in our best-fit model 
+those inferred by prior authors, with a Neandertal-modern human divergence time 
+of 547 kya, MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion 
+of 2.7 percent. We observe some large, systematic residuals in our best-fit model 
 (Figure~\ref{fig:humans}G-I), suggesting model misspecification that could be
-improved through further exploration of model space.
+improved through further exploration of model space. 
+
+We also fitted a nested model without the Neanderthal-GBR pulse, which had a 
+substantially lower likelihood than the pulse model (log-likelihood [LL] 
+$\approx -127,552$, against LL $\approx -25,103$ for the pulse model). We did 
+not perform a formal hypothesis test; the null distribution of the 
+likelihood-ratio test (LRT) statistic is overdispersed under composite 
+likelihood, inflating the rate of false positives and rendering its use 
+unjustifiable in this setting. \moments does incorporate a function 
+(\texttt{moments.Godambe.LRT\_adjust}) which computes a multiplicative
+adjustment, intended to restore the expected null distribution, using 
+first-order moment matching \cite{coffman2016computationally}. This method 
+requires bootstrapping over the data. Otherwise, we could conduct a hypothesis 
+test by fitting the nested and pulse models to a large number of bootstrap 
+samples and calculating the rate of rejection across replicates-- which has the 
+benefit of producing a distribution of LRT statistics, but is time-consuming
+and computationally expensive.  
 
 
 \section*{Considerations and caveats}\label{sec:conclusions}
@@ -485,8 +499,8 @@ and genomic resources available.
 \begin{figure}
     %\includegraphics{../example2/fig2.pdf}
     \caption{
-        Inference using human and Neanderthal data.
-        (A) The best-fit model including the Vindija Neanderthal and two human
+        Inference using human and Neandertal data.
+        (A) The best-fit model including the Vindija Neandertal and two human
         populations.
         (B, C) Marginal SFS fits between the model and empirical data are shown
         for MSL and GBR.

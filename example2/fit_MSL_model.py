@@ -11,7 +11,7 @@ graph_file = "models/MSL/MSL_model.yaml"
 options_file = "models/MSL/MSL_options.yaml"
 
 # define data path and load data
-data_file = "spectra/MSL"
+data_file = "spectra/MSL.fs"
 data = moments.Spectrum.from_file(data_file)
 
 # define output graph filename

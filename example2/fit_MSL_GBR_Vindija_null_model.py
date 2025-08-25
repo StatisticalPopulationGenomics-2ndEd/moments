@@ -1,4 +1,4 @@
-## Fit a two-epoch model for GBR
+## Fit parameters to the Neandertal branch of a three-deme MSL, GBR, Vindija model
 ## Then compute confidence intervals and plot the fit
 
 import demes, demesdraw
@@ -7,15 +7,15 @@ import matplotlib.pyplot as plt
 
 
 # define model paths
-graph_file = "models/GBR/GBR_model.yaml"
-options_file = "models/GBR/GBR_options.yaml"
+graph_file = "models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model.yaml"
+options_file = "models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model_options.yaml"
 
 # define data path and load data
-data_file = "spectra/GBR.fs"
+data_file = "spectra/MSL_GBR_Vindija.fs"
 data = moments.Spectrum.from_file(data_file)
 
 # define output graph filename
-output_file = "models/GBR/GBR_model.misid_fit.yaml"
+output_file = "models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model.misid_fit.yaml"
 
 # define parameters
 u = 1.5e-8
@@ -32,7 +32,7 @@ param_names, fit_params, ll = moments.Demes.Inference.optimize(
     fit_ancestral_misid=True, 
     misid_guess=misid_guess,
     uL=U, 
-    verbose=50,
+    verbose=1,
     output=output_file, 
     method="powell",
     overwrite=True
@@ -48,7 +48,7 @@ for name, value in zip(param_names, fit_params):
 p_misid = fit_params[-1]
 
 # compute confidence intervals using FIM 
-log_file = "models/GBR/GBR_model.misid_fit.uncerts.txt"
+log_file = "models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model.misid_fit.uncerts.txt" 
 uncerts = moments.Demes.Inference.uncerts(
     output_file,
     options_file,
@@ -60,7 +60,7 @@ uncerts = moments.Demes.Inference.uncerts(
     verbose=10,
     output=log_file,
     overwrite=True,
-    eps=1e-3
+    eps=1e-2
 )
 
 # print confidence intervals
@@ -73,17 +73,31 @@ for name, value, err in zip(param_names, fit_params, uncerts):
 fit_graph = demes.load(output_file)
 
 # compute model expectations
-model = moments.Demes.SFS(fit_graph, samples={"GBR": 20}, u=u, L=L)
+model = moments.Demes.SFS(
+    fit_graph, samples={"MSL": 20, "GBR": 20, "Vindija": 2}, u=u, L=L
+)
 model = moments.Misc.flip_ancestral_misid(model, p_misid)
 
-# plot size history
+# plot tubes
 ax = plt.subplot(111)
-demesdraw.size_history(fit_graph, ax=ax)
-plt.savefig("models/GBR/GBR_model.misid_fit.size_history.png")
+demesdraw.tubes(fit_graph, ax=ax)
+plt.savefig("models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model.misid_fit.tubes.png")
 plt.close()
 
-# plot fit to data
+# plot marginal fit for MSL
 moments.Plotting.plot_1d_comp_Poisson(
+    model.marginalize([1, 2]), data.marginalize([1, 2]), residual="Anscombe", 
+    out="models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model.misid_fit.comp_1d_MSL.png"
+)
+
+# plot marginal fit for GBR
+moments.Plotting.plot_1d_comp_Poisson(
+    model.marginalize([0, 2]), data.marginalize([0, 2]), residual="Anscombe", 
+    out="models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model.misid_fit.comp_1d_GBR.png"
+)
+
+# plot 3-way comparison
+moments.Plotting.plot_3d_comp_Poisson(
     model, data, residual="Anscombe", 
-    out="models/GBR/GBR_model.misid_fit.comp_1d.png"
+    out="models/MSL_GBR_Vindija_null_model/MSL_GBR_Vindija_null_model.misid_fit.comp_3d.png"
 )

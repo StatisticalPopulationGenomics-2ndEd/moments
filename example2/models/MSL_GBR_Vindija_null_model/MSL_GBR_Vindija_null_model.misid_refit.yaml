@@ -1,0 +1,27 @@
+description: Model of Vindija Neandertal, MSL and GBR lineages with admixture.
+time_units: years
+generation_time: 29
+demes:
+- name: A
+  epochs:
+  - {end_time: 456345.24292738596, start_size: 16647.576307286203}
+- name: Vindija
+  ancestors: [A]
+  epochs:
+  - {end_time: 55000, start_size: 2465.0668447055205}
+- name: AMH
+  ancestors: [A]
+  epochs:
+  - {end_time: 162984.64266770956, start_size: 16647.576307286203}
+  - {end_time: 66738.29786488197, start_size: 40712.47238348066}
+- name: MSL
+  ancestors: [AMH]
+  epochs:
+  - {end_time: 0, start_size: 20842.901365839993}
+- name: GBR
+  ancestors: [AMH]
+  epochs:
+  - {end_time: 0, start_size: 1121.0331286543624, end_size: 12002.469994555104}
+migrations:
+- demes: [MSL, GBR]
+  rate: 4.490426979450963e-05
