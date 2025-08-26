@@ -127,6 +127,8 @@ fig.text(0.05, 0.48, "H", fontsize=7, va="center", ha="center")
 fig.text(0.35, 0.48, "I", fontsize=7, va="center", ha="center")
 fig.text(0.67, 0.48, "J", fontsize=7, va="center", ha="center")
 
+fig.text(0.75, 0.95, "Count", fontsize=6, va="center", ha="center")
+
 fig.savefig("fig1.pdf")
 #fig.show()
 

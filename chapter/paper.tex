@@ -57,15 +57,8 @@
 
 \end{abstract}
 
-\emph{Keywords:} Demographic inference, site frequency spectrum, \aprcomment{any others?}
-
-% TODO:
-% - orcid numbers if any - done
-% - interline double, also for references - done
-% - line numbers - done
-% - keywords - done
-% - running head - done
-% - Figures in separate files (named Figure 1, Figure2, etc) for the final submission, legends listed at the end of the chapter. - done
+\emph{Keywords:} Demographic inference, site frequency spectrum, diffusion
+equation, moments equations
 
 \section*{Introduction}
 
@@ -91,17 +84,6 @@ independently so that haplotypic information is lost. Even so, the relative
 densities of allele frequencies and the overall scale of the SFS are both
 sensitive to demographic and non-demographic processes.
 
-This chapter focuses on multi-population demographic inference from the SFS
-using \moments \cite{jouganous2017inferring}.
-
-Briefly, \moments \ldots. 
-
-\reviewercomment{A short paragraph
-    briefly describing the principle of the moments methods would be great. How
-    does it differ from other sfs based methods? Just for the readers to get an
-idea, then directing them to the relevent literature for more details.}
-
-
 Past population processes, including changes in population size, splits, gene flow
 and population structure, impact the SFS in predictable ways. A population size
 expansion (or contraction) leads to a relative excess (or deficit) of
@@ -117,7 +99,19 @@ a rich ecosystem of software for SFS-based demographic inference
 kamm2020efficiently, dilber2024faster}. We return to this in the final section:
 Considerations and Caveats.
 
-Other evolutionary mechanisms are known to affect allele frequency dynamics and
+This chapter focuses on multi-population demographic inference from the SFS
+using \moments \cite{jouganous2017inferring}. Briefly, \moments computes the
+expected SFS by numerically solving a system of ordinary differential equations
+closely related to the diffusion approximation \cite{gutenkunst2009inferring}.
+The flexibility of the numerical methods in \moments allows for non-constant
+population size histories including up to five populations at a time, with gene
+flow. Selection can also be incorporated, allowing for recessive, additive or
+dominant selection, or over- or underdominance at a locus. This differs from
+most coalescent-based approaches (e.g.,
+\cite{excoffier2011fastsimcoal,dewitt2021nonparametric,dilber2024faster}),
+which are typically limited to neutrality.
+
+Many evolutionary mechanisms are known to affect allele frequency dynamics and
 the SFS. This presents a challenge for demographic inference, as the observed
 SFS may be distorted by non-demographic processes. However, this also presents
 an opportunity to learn about different evolutionary processes, if demographic
@@ -219,8 +213,6 @@ accompanying GitHub repository
 (\url{https://github.com/StatisticalPopulationGenomics-2ndEd/moments}), which
 is maintained with up-to-date versioning.
 
-\reviewercomment{Would it be possible to include some information regarding possible local optima? Do you recommend starting from different initial conditions?}
-
 In order to optimize parameters in a \demes model, we need a way to specify
 which parameters should be fit. For this, we use a separate YAML-formatted file
 to define \texttt{parameters}, each of which points to desired value(s) in the
@@ -267,10 +259,17 @@ GitHub (URL above).
 Taking the demographic model, parameters file, and observed SFS together, we
 can perform inference using the \texttt{moments.Demes.Inference.optimize()}
 function. The initial parameter guesses are given by the input demographic
-model, which may be perturbed using a keyword argument. Any value in the
-demographic model that is not specified in the parameters file will remain
-unchanged, and is therefore treated as a fixed parameter. Here, we also assume
-we have an estimate for the total mutation rate, $U$.
+model, which may be perturbed using a keyword argument. The likelihood surface
+may be rugged or flat in some dimensions, and optimization routines sometimes
+fail to converge to the global (or sometimes even local) optimum. Thus, we
+often try many different initial guesses for parameter values, which can be
+randomly assigned using the \texttt{perturb} keyword argument. Running multiple
+iterations of optimization with different optimization functions is also
+recommended to ensure convergence.
+
+Any value in the demographic model that is not specified in the parameters file
+will remain unchanged, and is therefore treated as a fixed parameter. Here, we
+also assume we have an estimate for the total mutation rate, $U$.
 
 \singlespacing
 \begin{minted}[gobble=4, frame=single]{python}
@@ -442,8 +441,6 @@ five populations existing at any one time, including ancient samples. Other
 SFS-based methods, such as \momi \cite{kamm2020efficiently, dilber2024faster},
 can include additional populations, typically with smaller sample sizes.
 
-\reviewercomment{Mirroring my comments in the introduction, I would suggest to add a few sentences to highlight how moments differ from other approaches, in terms of caveats and advantages. No need to go in details, just the take-home message and references for further details.}
-
 When inferring models with multiple populations, especially four or more, both
 the numbers of parameters and the space of plausible model topologies can grow
 rapidly. It can therefore become challenging for the optimization routines to
@@ -491,7 +488,6 @@ and genomic resources available.
         demographic models in (H--J), resp.  The two misspecified models (H and
         I) provide worse fits to the data and both overestimate the split time
         due to disallowing any size change in the ancestral population.
-        \reviewercomment{it might be good to label the colorbars for the joint spectra as 'allele frequency' for people that are unfamiliar with what those plots are showing}
     }
     \label{fig:im}
 \end{figure}
