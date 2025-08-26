@@ -28,6 +28,7 @@
 \usepackage{xspace}
 \newcommand{\aprcomment}[1]{{\textcolor{blue}{APR: #1}}}
 \newcommand{\reviewercomment}[1]{{\textcolor{red}{REVIEWER: #1}}}
+\newcommand{\nwccomment}[1]{{\textcolor{magenta}{NWC: #1}}}
 \newcommand{\moments}{\texttt{moments}\xspace}
 \newcommand{\demes}{\texttt{demes}\xspace}
 \newcommand{\demesdraw}{\texttt{demesdraw}\xspace}
@@ -203,7 +204,7 @@ Below, we show two examples of multi-population demographic inference using the
 joint SFS. The first example simulates data with known demographic parameters,
 which we try to reinfer using both the original model and simpler
 misspecified models. In the second example, we infer a relatively simple
-human-Neandertal history using data from two human populations and a
+Neanderthal-human history using data from two human populations and a
 high-coverage ancient sample from the Neandertal lineage. For both of these
 examples, we briefly describe data processing and inference setup, emphasizing
 the high-level components of the analyses. For detailed information about each
@@ -214,7 +215,7 @@ accompanying GitHub repository
 is maintained with up-to-date versioning.
 
 In order to optimize parameters in a \demes model, we need a way to specify
-which parameters should be fit. For this, we use a separate YAML-formatted file
+which parameters should be fitted. For this, we use a separate YAML-formatted file
 to define \texttt{parameters}, each of which points to desired value(s) in the
 demographic model and for which lower and upper bounds may be set. This file
 also specifies any relative \texttt{constraints} between pairs of parameters,
@@ -323,13 +324,13 @@ mutation rates of $10^{-8}$. The joint SFS was computed by using \tskit's
 region and summing across regions to find the total SFS across 500 Mb of data
 (Figure~\ref{fig:im}B--D).
 
-We fit three demographic models to the simulated data. In addition to
-reinferring the parameters from the simulated model, we fit two simpler models
-to the same data. These had fewer parameters, both omitting the size change
-deeper in time in the ancestral population. This is meant to crudely mimic the
-scenario that we often face, in which the true history is more complicated than
-the parameterized model. It also highlights biases in inferences that can arise
-when features of the true history are not included.
+We fitted three demographic models to the simulated data. In addition to
+reinferring the parameters from the simulated model, we fitted two simpler 
+models to the same data. These had fewer parameters, both omitting the size 
+change deeper in time in the ancestral population. This is meant to crudely 
+mimic the scenario that we often face, in which the true history is more 
+complicated than the parameterized model. It also highlights biases in 
+inferences that can arise when features of the true history are not included.
 
 When fitting the two misspecified models that do not allow for size changes in
 the ancestral population, this split time is inferred to be substantially
@@ -341,23 +342,23 @@ the descendent populations. These two misspecified models
 lower log-likelihoods and the large residuals between model predictions and
 data (Figure~\ref{fig:im}E-G).
 
-\subsection*{Example 2: Inferring human-Neandertal demographic parameters}
+\subsection*{Example 2: Inferring Neanderthal-human demographic parameters}
 
-This example uses publicly available data to infer a demographic model for two
+We used publicly available data to infer a demographic model for two
 modern human populations (a northern European and western African population) 
 and a Neandertal individual. As shown below, even with just a single sample 
 from the Neandertal lineage, we are able to recover key parameters such as the
-human-Neandertal divergence time and fraction of ancestry contributed to modern 
-Europeans by Neandertals.
+Neanderthal-human divergence time and the fraction of ancestry contributed to 
+modern Europeans by Neandertals.
 
 We obtained modern human genome sequences from a recent resequencing of the 
 1000 Genomes Project cohort \cite{byrska2022high}, and used the high-coverage 
-sequence of the Vindija Neandertal genome published by \cite{prufer2017high}. 
+sequence of the Vindija Neandertal genome \cite{prufer2017high}. 
 From the 1000 Genomes cohort we took 85 MSL (Mende from Sierre Leone) and 91 
 GBR (British from England and Scotland) sequences as our modern human samples.  
 We filtered out sites that lay outside the 1000 Genomes `strict' mask, 
-were not genotyped in the high-coverage archaic genome sequences, 
-that lacked high-confidence ancestral state assignments, or fell within 10 kb of 
+were not genotyped in four high-coverage archaic genome sequences, 
+lacked high-confidence ancestral state assignments, or fell within 10 kb of 
 exonic or promoter regions. This left us with approximately 960 Mb of 
 well-characterized and putatively neutrally-evolving sequence.
 We estimated the genome-wide SFS using built-in \moments parsing functions.
@@ -366,41 +367,44 @@ sequence to a more recent genome build) can be found in the linked GitHub
 repository.
 
 The model that we wished to fit is relatively simple but still has many
-parameters ($11$ in the example we present), so we constructed it in stages by
-first fitting marginal one- and two-population models. When our goal is to infer 
+parameters ($11$ in total), so we constructed it in stages by
+first fitting marginal one- and two-population models. When we want to infer 
 a complex demographic history involving multiple populations, it is helpful to 
-start simple, with subsets of the full data, and sequentially add complexity.  
+start simple by modeling subsets of the full data and sequentially adding
+complexity. This procedure gives us initial guesses for parameter values in more
+complex models and may help suggest which features are well-supported by the data.
 Here, we began by fitting one-population models with ancestral and recent size 
-changes for the MSL and GBR populations.  For the MSL model, we allowed three 
-epochs with constant effective size in each epoch. We attributed to GBR a sharp 
-contraction $\sim$60 kya followed by exponential growth to represent the 
+changes for the MSL and GBR populations.  In the MSL model, we allowed three 
+epochs of piecewise-constant effective size. We attributed to GBR two 
+constant-size epochs followed by a sharp 
+contraction and exponential growth beginning $\sim$60 kya to represent the 
 out-of-Africa bottleneck and subsequent rapid population expansion.  Throughout, 
 we used $u=1.5\times 10^{-8}$ as an estimate of the mutation rate per generation 
-and 29 years as the average generation time. YAML files representing the models 
+and 29 years as the average generation time. YAML files encoding the models 
 and parameters in this section can be found in the linked GitHub repository.
 
 We next stitched these one-population models together and refitted the resulting 
 demographic model to get a two-population model that included continuous 
 symmetric migration between MSL and GBR and an ancestral size expansion. 
 Following this, we added a Neandertal branch and fitted the 
-Neandertal-modern human divergence time, the Neandertal effective size, and the 
-Neandertal-GBR pulse proportion, leaving other parameters fixed. We also 
+Neandertal-human divergence time, the Neandertal effective size, and the 
+Neandertal-GBR pulse proportion, leaving all other parameters fixed. We also 
 fitted the divergence time between the sampled Vindija Neandertal lineage and 
-the Neandertal lineage which admixed with modern non-African humans. Finding 
+the Neandertal lineage which admixed with non-African humans. Finding 
 that this parameter tended to converge to its lower bound (imposed by the 
 estimated time of death of the Vindija Neandertal, ~55 kya), we fixed it to a 
 value supported by literature (90 kya, \cite{prufer2017high}) in a second round 
-of optimization. Rather than fitting it, we fixed the time of the Neandertal-GBR 
-pulse to 50 kya. Fixing parameters for which good estimates are available in the 
-literature  (see, e.g., \cite{sumer2025earliest}) is often reasonable in the 
-first stages of model optimization, and we expected this value to be especially 
-poorly constrained due to the small pulse proportion and Neandertal sample size. 
-In the second round of optimization on the three-population model, we refit all 
-parameters aside from the two event times mentioned above to refine the 
-estimates. 
+of optimization. We also fixed the time of the Neandertal-GBR pulse to 50 kya 
+(at the upper range of values inferrred by \cite{sumer2025earliest}). 
+Fixing parameters for which good estimates are available in the literature is often 
+reasonable in the first stages of model optimization, and we expected this 
+value to be especially poorly constrained due to the small pulse proportion and 
+Neandertal sample size. In the second round of optimization of the 
+three-population model, we refitted all parameters aside from the two times 
+mentioned above to refine the estimates. 
 
 After this refitting step, we were left with parameters in good agreement with 
-those inferred by prior authors, with a Neandertal-modern human divergence time 
+those inferred by prior authors, with a Neandertal-human divergence time 
 of 547 kya, MSL-GBR split time of 77 kya, and Neandertal-GBR pulse proportion 
 of 2.7 percent. We observe some large, systematic residuals in our best-fit model 
 (Figure~\ref{fig:humans}G-I), suggesting model misspecification that could be
@@ -411,16 +415,16 @@ substantially lower likelihood than the pulse model (log-likelihood [LL]
 $\approx -127,552$, against LL $\approx -25,103$ for the pulse model). We did 
 not perform a formal hypothesis test; the null distribution of the 
 likelihood-ratio test (LRT) statistic is overdispersed under composite 
-likelihood, inflating the rate of false positives and rendering its use 
-unjustifiable in this setting. \moments does incorporate a function 
-(\texttt{moments.Godambe.LRT\_adjust}) which computes a multiplicative
-adjustment, intended to restore the expected null distribution, using 
+likelihood, inflating the rate of false positives and preventing its use 
+ in this setting. \moments does incorporate a function 
+(\texttt{moments.Godambe.LRT\_adjust()}) which computes a multiplicative
+adjustment to the LRT, intended to restore the expected null distribution, using 
 first-order moment matching \cite{coffman2016computationally}. This method 
 requires bootstrapping over the data. Otherwise, we could conduct a hypothesis 
 test by fitting the nested and pulse models to a large number of bootstrap 
-samples and calculating the rate of rejection across replicates-- which has the 
-benefit of producing a distribution of LRT statistics, but is time-consuming
-and computationally expensive.  
+samples and calculating the rate of rejection across them-- which has the 
+benefit of producing a distribution of (nonindependent) LRT statistics, but is
+time-consuming and computationally expensive.  
 
 
 \section*{Considerations and caveats}\label{sec:conclusions}
